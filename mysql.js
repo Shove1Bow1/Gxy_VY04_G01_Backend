@@ -1,10 +1,10 @@
 const mysql=require('mysql');
 const conn = mysql.createConnection({
     user: "root",
-    host: "localhost",
-    port: 3306,
-    database: 'cnpmnc',
-    password: 'debian'
+    host: "containers-us-west-57.railway.app",
+    port: 5514,
+    database: 'CNPMNC',
+    password: 'pMKIS1SHPtwcfaSAfJjy'
 });
 conn.connect(err=>{
     if(err) throw err;

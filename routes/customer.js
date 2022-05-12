@@ -77,6 +77,7 @@ router.post("/Register",(req,res)=>{
                 "','" + req.body.CUS_PASSWORD + "');"
                 , (err, result) => {
                     if (err) throw (err);
+                    
                 });
         }
     }  
