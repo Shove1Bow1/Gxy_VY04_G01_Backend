@@ -12,15 +12,8 @@ var http = require('http');
 const axios = require('axios');
 const { profile } = require('console');
 const { response } = require('express');
-var ARRAY_APP_ID = ["Profile", "Flight", "Hotel", "Airport", "Apart", "Xperience", "Carrental", "Eats", "Voucher", "Combo"];
+var ARRAY_APP_ID = ["PROFILE", "FLIGHT", "HOTEL", "AIRPORT", "APART", "XPERIENCE", "CARRENTAL", "EATS", "VOUCHER", "COMBO"];
 let algorithm = "sha256";
-tempRun.use(session({
-    resave: true,
-    saveUninitialized: true,
-    secret: 'somesecret',
-    cookie: { maxAge: 1000 * 60 * 60 * 24 }
-}));
-
 
 router.post("/create-payment-intent", async (req, res) => {
     const items = 3000;
@@ -52,38 +45,6 @@ const calculateOrderAmount = (items) => {
 //Register
 router.post("/Register", async (req, res) => {
     var numericId;
-    const getNumericId = (data) => {
-        numericId = data;
-        console.log(numericId);
-        numericId += 1;
-        const CUSTOMER_ID = 'CUS' + numericId;
-        console.log(CUSTOMER_ID);
-        console.log(req.body.CUSTOMER_NAME);
-        con.query("insert into CUSTOMER_INFO(CUSTOMER_ID,FULL_NAME,GENDER,DATE_OF_BIRTH,POINT_AVAILABLE) values ('" +
-            CUSTOMER_ID + "','" +
-            req.body.CUSTOMER_NAME + "','" +
-            req.body.GENDER + "','" +
-            req.body.BIRTHDAY + "',0);"
-            , (err, result) => {
-                if (err) throw (err);
-            })
-        con.query("insert into CUSTOMER_SECURITY(CUSTOMER_ID,CUSTOMER_EMAIL,CUS_PASSWORD) values ('" +
-            CUSTOMER_ID + "','" +
-            req.body.CUSTOMER_EMAIL.toUpperCase() +
-            "','" + req.body.CUS_PASSWORD + "');"
-            , (err, result) => {
-                if (err) console.log(err);
-                const TOKEN = crypto.createHash(algorithm).update(req.body.CUS_PASSWORD + req.body.CUSTOMER_EMAIL);
-                res.send([{
-                    STATUS: true,
-                    CUSTOMER_ID: CUSTOMER_ID,
-                    CUSTOMER_TOKEN: TOKEN,
-                    EXPIRED_TIME: 3600 * 24 * 7,
-                }])
-            })
-        console.log("finish");
-        return;
-    }
     if (req.body.CUSTOMER_EMAIL) {
         con.query("select CUSTOMER_EMAIL from CUSTOMER_SECURITY where CUSTOMER_EMAIL='" +
             req.body.CUSTOMER_EMAIL + "';", (err, result) => {
@@ -140,8 +101,7 @@ router.post("/Register", async (req, res) => {
     else {
         res.send({ "message": "enter your email" })
     }
-}
-)
+})
 //LOGIN USING EMAIL
 router.post("/LoginEmail", (req, res) => {
     if (!req.body.CUSTOMER_EMAIL) {
@@ -182,16 +142,16 @@ router.post("/LoginEmail", (req, res) => {
 router.post("/LoginPhoneNumber", (req, res) => {
 
 })
-// fetch app api
+// get app id
 router.post("/getAppId", (req, res) => {
-    if (req.body.APP_ID) {
+    if (ARRAY_APP_ID.includes(req.body.APP_ID)) {
         res.send([{ APP_ID: req.body.APP_ID }]);
     }
     else {
-        res.send([{ APP_ID: "Profile" }]);
+        res.send([{ APP_ID: "PROFILE" }]);
     }
 })
-// fetch Account
+// send Account info
 router.post(`/getUserInfo`, (req, res) => {
     if (!req.body.CUSTOMER_ID) {
         console.log("here is not the info");
@@ -253,11 +213,11 @@ router.post(`/getUserInfo`, (req, res) => {
         }
     }
 })
-/// Function
+/// Function SendBackUserInfo
 function handleServerUserInfo(CUSTOMER_INFO_PACKAGE, req, res) {
     console.log("confirm");
     switch (req.body.APP_ID) {
-        case "Profile":
+        case "PROFILE":
             return (res.send({
                 CUSTOMER_PACKAGE: CUSTOMER_INFO_PACKAGE,
                 STATUS: req.body.STATUS,
@@ -265,7 +225,7 @@ function handleServerUserInfo(CUSTOMER_INFO_PACKAGE, req, res) {
                 CUSTOMER_TOKEN: req.body.CUSTOMER_TOKEN,
                 EXPIRED_TIME: req.body.EXPIRED_TIME,
             }));
-        case "Flight": {
+        case "FLIGHT": {
             axios.post('http://localhost:8021/demo', {
                 CUSTOMER_PACKAGE: CUSTOMER_INFO_PACKAGE,
                 STATUS: req.body.STATUS,
@@ -282,7 +242,7 @@ function handleServerUserInfo(CUSTOMER_INFO_PACKAGE, req, res) {
             res.end();
             break;
         }
-        case "Hotel": {
+        case "HOTEL": {
             axios.post('http://localhost:8021/demo', {
                 CUSTOMER_PACKAGE: CUSTOMER_INFO_PACKAGE,
                 STATUS: req.body.STATUS,
@@ -299,7 +259,7 @@ function handleServerUserInfo(CUSTOMER_INFO_PACKAGE, req, res) {
             res.end();
             break;
         }
-        case "Airport": {
+        case "AIRPORT": {
             axios.post('http://localhost:8021/demo', {
                 CUSTOMER_PACKAGE: CUSTOMER_INFO_PACKAGE,
                 STATUS: req.body.STATUS,
@@ -317,7 +277,7 @@ function handleServerUserInfo(CUSTOMER_INFO_PACKAGE, req, res) {
             break;
 
         }
-        case "Apart": {
+        case "APART": {
             axios.post('http://localhost:8021/demo', {
                 CUSTOMER_PACKAGE: CUSTOMER_INFO_PACKAGE,
                 STATUS: req.body.STATUS,
@@ -334,7 +294,7 @@ function handleServerUserInfo(CUSTOMER_INFO_PACKAGE, req, res) {
             res.end();
             break;
         }
-        case "Xperience": {
+        case "XPERIENCE": {
             axios.post('http://localhost:8021/demo', {
                 CUSTOMER_PACKAGE: CUSTOMER_INFO_PACKAGE,
                 STATUS: req.body.STATUS,
@@ -351,7 +311,7 @@ function handleServerUserInfo(CUSTOMER_INFO_PACKAGE, req, res) {
             res.end();
             break;
         }
-        case "Carrental": {
+        case "CARRENTAL": {
             axios.post('http://localhost:8021/demo', {
                 CUSTOMER_PACKAGE: CUSTOMER_INFO_PACKAGE,
                 STATUS: req.body.STATUS,
@@ -368,7 +328,7 @@ function handleServerUserInfo(CUSTOMER_INFO_PACKAGE, req, res) {
             res.end();
             break;
         }
-        case "Eats": {
+        case "EATS": {
             axios.post('http://localhost:8021/demo', {
                 CUSTOMER_PACKAGE: CUSTOMER_INFO_PACKAGE,
                 STATUS: req.body.STATUS,
@@ -385,7 +345,7 @@ function handleServerUserInfo(CUSTOMER_INFO_PACKAGE, req, res) {
             res.end();
             break;
         }
-        case "Voucher": {
+        case "VOUCHER": {
             axios.post('http://localhost:8021/demo', {
                 CUSTOMER_PACKAGE: CUSTOMER_INFO_PACKAGE,
                 STATUS: req.body.STATUS,
@@ -402,7 +362,7 @@ function handleServerUserInfo(CUSTOMER_INFO_PACKAGE, req, res) {
             res.end();
             break;
         }
-        case "Combo": {
+        case "COMBO": {
             axios.post('http://localhost:8021/demo', {
                 CUSTOMER_PACKAGE: CUSTOMER_INFO_PACKAGE,
                 STATUS: req.body.STATUS,
