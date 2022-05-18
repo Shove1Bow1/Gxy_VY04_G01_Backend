@@ -1,14 +1,29 @@
 var express = require('express');
 const con = require('../mysql');
 var router = express.Router();
-
+const crypto=require("crypto");
+const algorithm="sha256";
 /* GET Admin listing. */
 router.get("/getServiceManager", (req, res, next) => {
-  con.query("select * from SERVICE_PROVIDER", function (err, result, filesd) {
-      if (err) throw err;
-      res.set('Access-Control-Allow-Origin', '*')
-      res.send(JSON.stringify(result));
-  });
+  if(true){
+      con.query("select * from ADMIN where ADMIN.ADMIN_ID='AD01"+"';", function (err, result, filesd) {
+      if (err) console.log(err);
+      else{
+        const TOKEN = crypto.createHash(algorithm).update(result[0].ADMIN_PASSWORD + result[0].ADMIN_ID).digest("hex");
+        if (false){
+          res.send();
+        }{
+          con.query("select * from SERVICE_PROVIDER",(err,resultService,ce)=>{
+            if(err) console.log(err);
+            res.send(JSON.stringify(resultService));
+          })
+        }
+      }
+    });
+    }
+  else{
+    res.send();
+}
 });
 
 router.get("/getServiceManager/:id", (req, res) => {   
@@ -27,6 +42,7 @@ router.get("/getBaremPrice",(req,res)=>{
       res.send(JSON.stringify(result));
   })
 })
+// 
 router.get("/getBaremExchangePoint",(req,res)=>{
   const id=(req.body.APP_ID);
   console.log(id);
@@ -61,7 +77,7 @@ router.post("/Login",(req,res,next)=>{
   })
 })
 
-router.get("/StayLogin",(req,res,next)=>{
+router.get("/Session",(req,res,next)=>{
   res.set('Access-Control-Allow-Origin', '*');
   if (session.ADMIN_ID && session.ADMIN_NAME) {
       res.send({message:"Loged in"});
@@ -70,12 +86,4 @@ router.get("/StayLogin",(req,res,next)=>{
       res.send({message:"no Admin"})
   }
 })
-
-router.get("/Logout",(req,res,next)=>{
-  session.ADMIN_ID=null;
-  session.ADMIN_NAME=null;
-  console.log(req.session);
-  res.end();
-})
-
 module.exports = router;

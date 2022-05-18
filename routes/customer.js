@@ -6,6 +6,13 @@ const tempRun = express();
 const con = require('../mysql');
 const stripe = require('../stripe');
 const crypto = require("crypto");
+const e = require('express');
+const { stringify } = require('querystring');
+var http = require('http');
+const axios = require('axios');
+const { profile } = require('console');
+const { response } = require('express');
+var ARRAY_APP_ID = ["Profile", "Flight", "Hotel", "Airport", "Apart", "Xperience", "Carrental", "Eats", "Voucher", "Combo"];
 let algorithm = "sha256";
 tempRun.use(session({
     resave: true,
@@ -13,19 +20,22 @@ tempRun.use(session({
     secret: 'somesecret',
     cookie: { maxAge: 1000 * 60 * 60 * 24 }
 }));
-router.post("/create-payment-intent", async (req, res) => {
-    const { items } = req.body;
 
+
+router.post("/create-payment-intent", async (req, res) => {
+    const items = 3000;
     // Create a PaymentIntent with the order amount and currency
     const paymentIntent = await stripe.paymentIntents.create({
         amount: calculateOrderAmount(items),
-        currency: "eur",
+        currency: "usd",
+
         automatic_payment_methods: {
             enabled: true,
+
         },
     });
-    console.log(paymentIntent.client_secret);
 
+    console.log(paymentIntent.client_secret);
     res.send({
         clientSecret: paymentIntent.client_secret,
     });
@@ -40,9 +50,8 @@ const calculateOrderAmount = (items) => {
 //// CUSTOMER 
 ////
 //Register
-router.post("/Register", (req, res) => {
+router.post("/Register", async (req, res) => {
     var numericId;
-
     const getNumericId = (data) => {
         numericId = data;
         console.log(numericId);
@@ -50,193 +59,366 @@ router.post("/Register", (req, res) => {
         const CUSTOMER_ID = 'CUS' + numericId;
         console.log(CUSTOMER_ID);
         console.log(req.body.CUSTOMER_NAME);
-        if (req.body.CUSTOMER_NAME === undefined ||
-            req.body.CUSTOMER_NAME === null ||
-            req.body.CUSTOMER_NAME.length === 0 ||
-            CUSTOMER_ID === undefined ||
-            CUSTOMER_ID === null) {
-            console.log("ending here");
-            res.end();
-        }
-        else {
-            con.query("insert into CUSTOMER_INFO(CUSTOMER_ID,FULL_NAME,GENDER,DATE_OF_BIRTH,POINT_AVAILABLE) values ('" + CUSTOMER_ID + "','" +
-                req.body.CUSTOMER_NAME + "','" +
-                req.body.GENDER + "','" +
-                req.body.BIRTHDAY + "',0);"
-                , (err, result) => {
-                    if (err) throw (err);
-                })
-        }
-        if (req.body.CUSTOMER_EMAIL === null ||
-            req.body.CUSTOMER_EMAIL === undefined ||
-            req.body.CUSTOMER_EMAIL.length === 0 ||
-            req.body.CUS_PASSWORD === undefined ||
-            req.body.CUS_PASSWORD === null ||
-            req.body.CUS_PASSWORD.length === 0) {
-            res.end();
-        }
-        else {
-            con.query("insert into CUSTOMER_SECURITY(CUSTOMER_ID,CUSTOMER_EMAIL,CUS_PASSWORD) values ('" + CUSTOMER_ID +
-                "','" + req.body.CUSTOMER_EMAIL +
-                "','" + req.body.CUS_PASSWORD + "');"
-                , (err, result) => {
-                    if (err) throw (err);
-
-                });
-        }
+        con.query("insert into CUSTOMER_INFO(CUSTOMER_ID,FULL_NAME,GENDER,DATE_OF_BIRTH,POINT_AVAILABLE) values ('" +
+            CUSTOMER_ID + "','" +
+            req.body.CUSTOMER_NAME + "','" +
+            req.body.GENDER + "','" +
+            req.body.BIRTHDAY + "',0);"
+            , (err, result) => {
+                if (err) throw (err);
+            })
+        con.query("insert into CUSTOMER_SECURITY(CUSTOMER_ID,CUSTOMER_EMAIL,CUS_PASSWORD) values ('" +
+            CUSTOMER_ID + "','" +
+            req.body.CUSTOMER_EMAIL.toUpperCase() +
+            "','" + req.body.CUS_PASSWORD + "');"
+            , (err, result) => {
+                if (err) console.log(err);
+                const TOKEN = crypto.createHash(algorithm).update(req.body.CUS_PASSWORD + req.body.CUSTOMER_EMAIL);
+                res.send([{
+                    STATUS: true,
+                    CUSTOMER_ID: CUSTOMER_ID,
+                    CUSTOMER_TOKEN: TOKEN,
+                    EXPIRED_TIME: 3600 * 24 * 7,
+                }])
+            })
+        console.log("finish");
+        return;
     }
-    if (session.CUSTOMER_ID !== undefined && session.CUSTOMER_NAME !== undefined
-        && session.CUSTOMER_ID !== null && session.CUSTOMER_NAME !== null && session.TOKEN !== null) {
-        con.query("select * from CUSTOMER_SECURITY where CUSTOMER_ID='" + session.CUSTOMER_ID + "';", (err, result) => {
-            if (err) throw err;
-            if (
-                result[0] !== null
-            ) {
-                let hashLogin = crypto.createHash(algorithm).update(result[0].CUS_PASSWORD + result[0].CUSTOMER_EMAIL).digest("hex");
-                if (hashLogin === session.TOKEN) {
-                    res1.send([
-                        {
-                            CUSTOMER_ID: session.CUSTOMER_ID,
-                            CUSTOMER_NAME: session.CUSTOMER_NAME
-                        }
-                    ]);
-                }
-            }
-        })
-
-    }
-    else {
-        con.query("select CUSTOMER_EMAIL from CUSTOMER_SECURITY where CUSTOMER_EMAIL='" + req.body.CUSTOMER_EMAIL + "';", (err, result) => {
-            console.log(result);
-            if (err) {
-                res.send(err)
-            }
-            else {
-                if (result[0] !== undefined) {
-                    res.send([{ "CUSTOMER_EMAIL": "Already exist Email;" }])
-                }
-                else {
-                    con.query("select COUNT(*) as NUMBER from CUSTOMER_SECURITY", (err, result) => {
-                        if (err) throw err;
-                        console.log(result[0].NUMBER);
-                        return getNumericId(result[0].NUMBER);
-                    })
-                }
-            }
-        })
-    }
-
-})
-//LOGIN USING EMAIL
-router.post("/LoginEmail", (req, res) => {
-    console.log(req.body.CUSTOMER_EMAIL);
-    con.query(
-        "select * from CUSTOMER_SECURITY,CUSTOMER_INFO where CUSTOMER_EMAIL='" + req.body.CUSTOMER_EMAIL
-        + "' and CUS_PASSWORD = '" + req.body.CUS_PASSWORD
-        + "' and CUSTOMER_SECURITY.CUSTOMER_ID=CUSTOMER_INFO.CUSTOMER_ID;", (err, result) => {
-            if (err) throw err;
-            if (result.length === 0) { res.send("Please reenter your Account"); }
-            else {
+    if (req.body.CUSTOMER_EMAIL) {
+        con.query("select CUSTOMER_EMAIL from CUSTOMER_SECURITY where CUSTOMER_EMAIL='" +
+            req.body.CUSTOMER_EMAIL + "';", (err, result) => {
                 console.log(result);
-                session.TOKEN = crypto.createHash(algorithm).update(req.body.CUS_PASSWORD + req.body.CUSTOMER_EMAIL).digest("hex");
-                session.CUSTOMER_ID = result[0].CUSTOMER_ID;
-                session.CUSTOMER_NAME = result[0].FULL_NAME;
-                const BackData =
-                    [
-                        {
-                            CUSTOMER_ID: session.CUSTOMER_ID,
-                            CUSTOMER_NAME: session.CUSTOMER_NAME,
-                            CUSTOMER_TOKEN: session.TOKEN,
-                        }
-                    ];
-                res.send(JSON.stringify(BackData));
-            }
-        })
-})
-//LOGIN USING Phone Number
-router.post("/LoginPhoneNumber", (req, res) => {
-    console.log(req.body.CUSTOMER_EMAIL);
-    if (session.CUSTOMER_ID !== undefined && session.CUSTOMER_NAME !== undefined
-        && session.CUSTOMER_ID !== null && session.CUSTOMER_NAME !== null && session.TOKEN !== null) {
-        con.query("select * from CUSTOMER_SECURITY where CUSTOMER_ID='" + session.CUSTOMER_ID + "';", (err, result) => {
-            console.log("check");
-            if (err) throw err;
-            if (
-                result[0] !== null
-            ) {
-                let hashLogin = crypto.createHash(algorithm).update(result[0].CUS_PASSWORD + result[0].CUSTOMER_EMAIL).digest("hex");
-                if (hashLogin === session.TOKEN) {
-                    res.send([
-                        {
-                            CUSTOMER_ID: session.CUSTOMER_ID,
-                            CUSTOMER_NAME: session.CUSTOMER_NAME
-                        }
-                    ]);
+                if (err) {
+                    res.send(err)
                 }
-            }
-        })
-    }
-    else {
-        con.query(
-            "select * from PROVIDER__USER_INFO,CUSTOMER_INFO where CUSTOMER_EMAIL='" + req.body.CUSTOMER_PHONE
-            + "' and CUS_PASSWORD = '" + req.body.CUS_PASSWORD
-            + "' and CUSTOMER_SECURITY.CUSTOMER_ID=CUSTOMER_INFO.CUSTOMER_ID;", (err, result) => {
-                if (err) throw err;
-                if (result.length === 0) { res.send("Please reenter your Account"); }
                 else {
-                    console.log(result);
-                    session.TOKEN = crypto.createHash(algorithm).update(req.body.CUS_PASSWORD + req.body.CUSTOMER_EMAIL).digest("hex");
-                    session.CUSTOMER_ID = result[0].CUSTOMER_ID;
-                    session.CUSTOMER_NAME = result[0].FULL_NAME;
-                    const BackData =
-                        [
-                            {
-                                CUSTOMER_ID: session.CUSTOMER_ID,
-                                CUSTOMER_NAME: session.CUSTOMER_NAME,
-                                CUSTOMER_TOKEN: session.TOKEN,
-                            }
-                        ];
-                    res.send(JSON.stringify(BackData));
+                    if (result[0] !== undefined) {
+                        res.send([{ ERROR: "Email Is Being Used;" }])
+                    }
+                    else {
+                        if (!req.body.PHONE_NUM) {
+                            con.query("select COUNT(*) as NUMBER from CUSTOMER_SECURITY", (err, result) => {
+                                if (err) throw err;
+                                console.log(result[0].NUMBER);
+                                numericId = result[0].NUMBER;
+                                console.log(numericId);
+                                numericId += 1;
+                                const CUSTOMER_ID = 'CUS' + numericId;
+                                console.log(CUSTOMER_ID);
+                                console.log(req.body.CUSTOMER_NAME);
+                                con.query("insert into CUSTOMER_INFO(CUSTOMER_ID,FULL_NAME,GENDER,DATE_OF_BIRTH,POINT_AVAILABLE) values ('" +
+                                    CUSTOMER_ID + "','" +
+                                    req.body.CUSTOMER_NAME + "','" +
+                                    req.body.GENDER + "','" +
+                                    req.body.BIRTHDAY + "',0);"
+                                    , (err, result) => {
+                                        if (err) throw (err);
+                                    })
+                                con.query("insert into CUSTOMER_SECURITY(CUSTOMER_ID,CUSTOMER_EMAIL,CUS_PASSWORD) values ('" +
+                                    CUSTOMER_ID + "','" +
+                                    req.body.CUSTOMER_EMAIL.toUpperCase() +
+                                    "','" + req.body.CUS_PASSWORD + "');"
+                                    , (err, result) => {
+                                        if (err) console.log(err);
+                                        const TOKEN = crypto.createHash(algorithm).update(req.body.CUS_PASSWORD + req.body.CUSTOMER_EMAIL.toUpperCase()).digest("hex");
+                                        res.send([{
+                                            STATUS: true,
+                                            CUSTOMER_ID: CUSTOMER_ID,
+                                            CUSTOMER_TOKEN: TOKEN,
+                                            EXPIRED_TIME: 3600 * 24 * 7,
+                                        }])
+                                    })
+                                console.log("finish");
+                            })
+                        }
+                        else {
+                        }
+                    }
                 }
             })
     }
+    else {
+        res.send({ "message": "enter your email" })
+    }
+}
+)
+//LOGIN USING EMAIL
+router.post("/LoginEmail", (req, res) => {
+    if (!req.body.CUSTOMER_EMAIL) {
+        res.send([{ ERROR: "Please type in Your Email" }]);
+    }
+    else {
+        if (!req.body.CUS_PASSWORD) {
+            res.send([{ ERROR: "please type in Your Password" }]);
+        }
+        else {
+            con.query(
+                "select * from CUSTOMER_SECURITY,CUSTOMER_INFO where CUSTOMER_EMAIL='" + req.body.CUSTOMER_EMAIL
+                + "' and CUS_PASSWORD = '" + req.body.CUS_PASSWORD
+                + "' and CUSTOMER_SECURITY.CUSTOMER_ID=CUSTOMER_INFO.CUSTOMER_ID;", (err, result) => {
+                    if (err) throw err;
+                    if (!result) { res.send("Please reenter your Account"); }
+                    else {
+                   
+                        const TOKEN = crypto.createHash(algorithm).update(req.body.CUS_PASSWORD + req.body.CUSTOMER_EMAIL).digest("hex");     
+                       
+                        const BackData =
+                            [
+                                {
+                                    STATUS: true,
+                                    CUSTOMER_ID: result[0].CUSTOMER_ID,
+                                    CUSTOMER_TOKEN: TOKEN,
+                                    EXPIRED_TIME: 3600 * 24 * 7,
+                                }
+                            ]; 
+                        console.log(BackData);
+                        res.send(JSON.stringify(BackData));
+                    }
+                })
+        }
+    }
 })
-//Check Session
-router.get("/Session",(req,res)=>{
-    if (session.CUSTOMER_ID !== undefined && session.CUSTOMER_NAME !== undefined
-        && session.CUSTOMER_ID !== null && session.CUSTOMER_NAME !== null && session.TOKEN !== null) {
-        con.query("select * from CUSTOMER_SECURITY where CUSTOMER_ID='" + session.CUSTOMER_ID + "';", (err, result) => {
-            console.log("check");
-            if (err) throw err;
-            if (result[0] !== null) {
-                let hashLogin = crypto.createHash(algorithm).update(result[0].CUS_PASSWORD + result[0].CUSTOMER_EMAIL).digest("hex");
-                if (hashLogin === session.TOKEN) {
-                    res.send([
-                        {
-                            CUSTOMER_ID: session.CUSTOMER_ID,
-                            CUSTOMER_NAME: session.CUSTOMER_NAME,
-                            TOKEN:session.TOKEN
+//LOGIN USING Phone Number
+router.post("/LoginPhoneNumber", (req, res) => {
+
+})
+// fetch app api
+router.post("/getAppId", (req, res) => {
+    if (req.body.APP_ID) {
+        res.send([{ APP_ID: req.body.APP_ID }]);
+    }
+    else {
+        res.send([{ APP_ID: "Profile" }]);
+    }
+})
+// fetch Account
+router.post(`/getUserInfo`, (req, res) => {
+    if (!req.body.CUSTOMER_ID) {
+        console.log("here is not the info");
+        res.end();
+    }
+    else {
+        if (!req.body.CUSTOMER_TOKEN) {
+            res.send([{ ERROR: "YOU DON'T HAVE A TOKEN TO ACCESS THIS DATA" }]);
+        }
+        else {
+            console.log(req.body.APP_ID)
+            if (ARRAY_APP_ID.includes(req.body.APP_ID)) {
+                con.query("select * from CUSTOMER_SECURITY,CUSTOMER_INFO where CUSTOMER_SECURITY.CUSTOMER_ID=CUSTOMER_INFO.CUSTOMER_ID and CUSTOMER_SECURITY.CUSTOMER_ID='" + req.body.CUSTOMER_ID + "';", (err, result) => {
+                    if (err) throw (err);
+                    console.log("here the info");
+                    const TOKEN = crypto.createHash(algorithm).update(result[0].CUS_PASSWORD + result[0].CUSTOMER_EMAIL).digest("hex");
+                    const CUSTOMER_TOKEN = req.body.CUSTOMER_TOKEN;
+                    console.log(TOKEN);
+                    var Year = null, Month = null, Day = null;
+                    const BIRTHDAY = stringify(result[0].CUSTOMER_BIRTHDAY);
+                    if (BIRTHDAY.length > 8) {
+                        for (var i = 0; i < BIRTHDAY.length; i++) {
+                            if (i < 4) {
+                                Year += data.data[0].CUSTOMER_BIRTHDAY[i];
+                            }
+                            if (i > 4 && i < 7) {
+                                Month += data.data[0].CUSTOMER_BIRTHDAY[i];
+                            }
+                            if (i > 7 && i < 10) {
+                                Day += data.data[0].CUSTOMER_BIRTHDAY[i]
+                            }
+                            if (i > 10) {
+                                break;
+                            }
                         }
-                    ]);
-                }
+                    }
+                    const CUSTOMER_INFO_PACKAGE = [{
+                        CUSTOMER_NAME: req.body.CUSTOMER_NAME || null,
+                        CUSTOMER_DAYOFBIRTH: Day,
+                        CUSTOMER_ADDRESS: result[0].CUSTOMER_ADDRESS || null,
+                        CUSTOMER_GENDER: result[0].CUSTOMER_GENDER || null,
+                        CUSTOMER_MONTHOFBIRTH: Month,
+                        CUSTOMER_YEAROFBIRTH: Year
+                    }]
+                    console.log(TOKEN);
+                    console.log(CUSTOMER_TOKEN);
+                    console.log(CUSTOMER_TOKEN.includes(TOKEN));
+                    if (CUSTOMER_TOKEN.includes(TOKEN)) {
+                        handleServerUserInfo(CUSTOMER_INFO_PACKAGE, req, res);
+                    }
+                    else {
+                        res.end();
+                    }
+                })
             }
-        })
-    }
-    else{
-        res.send([
-            {
-                CUSTOMER_ID: "null",
-                CUSTOMER_NAME: "null",
-                TOKEN: "null"
+            else {
+                res.end();
             }
-        ])
+        }
     }
 })
-//LOGOUT
-router.get("/Logout", (req, res) => {
-    session.TOKEN = null;
-    session.CUSTOMER_ID = null;
-    session.CUSTOMER_NAME = null;
-    res.end();
-})
+/// Function
+function handleServerUserInfo(CUSTOMER_INFO_PACKAGE, req, res) {
+    console.log("confirm");
+    switch (req.body.APP_ID) {
+        case "Profile":
+            return (res.send({
+                CUSTOMER_PACKAGE: CUSTOMER_INFO_PACKAGE,
+                STATUS: req.body.STATUS,
+                CUSTOMER_ID: req.body.CUSTOMER_ID,
+                CUSTOMER_TOKEN: req.body.CUSTOMER_TOKEN,
+                EXPIRED_TIME: req.body.EXPIRED_TIME,
+            }));
+        case "Flight": {
+            axios.post('http://localhost:8021/demo', {
+                CUSTOMER_PACKAGE: CUSTOMER_INFO_PACKAGE,
+                STATUS: req.body.STATUS,
+                CUSTOMER_ID: req.body.CUSTOMER_ID,
+                CUSTOMER_TOKEN: req.body.CUSTOMER_TOKEN,
+                EXPIRED_TIME: req.body.EXPIRED_TIME,
+            }).then(res => {
+                console.log(`statusCode: ${res.status}`);
+                console.log(res);
+            })
+                .catch(error => {
+                    console.error(error);
+                })
+            res.end();
+            break;
+        }
+        case "Hotel": {
+            axios.post('http://localhost:8021/demo', {
+                CUSTOMER_PACKAGE: CUSTOMER_INFO_PACKAGE,
+                STATUS: req.body.STATUS,
+                CUSTOMER_ID: req.body.CUSTOMER_ID,
+                CUSTOMER_TOKEN: req.body.CUSTOMER_TOKEN,
+                EXPIRED_TIME: req.body.EXPIRED_TIME,
+            }).then(res => {
+                console.log(`statusCode: ${res.status}`);
+                console.log(res);
+            })
+                .catch(error => {
+                    console.error(error);
+                })
+            res.end();
+            break;
+        }
+        case "Airport": {
+            axios.post('http://localhost:8021/demo', {
+                CUSTOMER_PACKAGE: CUSTOMER_INFO_PACKAGE,
+                STATUS: req.body.STATUS,
+                CUSTOMER_ID: req.body.CUSTOMER_ID,
+                CUSTOMER_TOKEN: req.body.CUSTOMER_TOKEN,
+                EXPIRED_TIME: req.body.EXPIRED_TIME,
+            }).then(res => {
+                console.log(`statusCode: ${res.status}`);
+                console.log(res);
+            })
+                .catch(error => {
+                    console.error(error);
+                })
+            res.end();
+            break;
+
+        }
+        case "Apart": {
+            axios.post('http://localhost:8021/demo', {
+                CUSTOMER_PACKAGE: CUSTOMER_INFO_PACKAGE,
+                STATUS: req.body.STATUS,
+                CUSTOMER_ID: req.body.CUSTOMER_ID,
+                CUSTOMER_TOKEN: req.body.CUSTOMER_TOKEN,
+                EXPIRED_TIME: req.body.EXPIRED_TIME,
+            }).then(res => {
+                console.log(`statusCode: ${res.status}`);
+                console.log(res);
+            })
+                .catch(error => {
+                    console.error(error);
+                })
+            res.end();
+            break;
+        }
+        case "Xperience": {
+            axios.post('http://localhost:8021/demo', {
+                CUSTOMER_PACKAGE: CUSTOMER_INFO_PACKAGE,
+                STATUS: req.body.STATUS,
+                CUSTOMER_ID: req.body.CUSTOMER_ID,
+                CUSTOMER_TOKEN: req.body.CUSTOMER_TOKEN,
+                EXPIRED_TIME: req.body.EXPIRED_TIME,
+            }).then(res => {
+                console.log(`statusCode: ${res.status}`);
+                console.log(res);
+            })
+                .catch(error => {
+                    console.error(error);
+                })
+            res.end();
+            break;
+        }
+        case "Carrental": {
+            axios.post('http://localhost:8021/demo', {
+                CUSTOMER_PACKAGE: CUSTOMER_INFO_PACKAGE,
+                STATUS: req.body.STATUS,
+                CUSTOMER_ID: req.body.CUSTOMER_ID,
+                CUSTOMER_TOKEN: req.body.CUSTOMER_TOKEN,
+                EXPIRED_TIME: req.body.EXPIRED_TIME,
+            }).then(res => {
+                console.log(`statusCode: ${res.status}`);
+                console.log(res);
+            })
+                .catch(error => {
+                    console.error(error);
+                });
+            res.end();
+            break;
+        }
+        case "Eats": {
+            axios.post('http://localhost:8021/demo', {
+                CUSTOMER_PACKAGE: CUSTOMER_INFO_PACKAGE,
+                STATUS: req.body.STATUS,
+                CUSTOMER_ID: req.body.CUSTOMER_ID,
+                CUSTOMER_TOKEN: req.body.CUSTOMER_TOKEN,
+                EXPIRED_TIME: req.body.EXPIRED_TIME,
+            }).then(res => {
+                console.log(`statusCode: ${res.status}`);
+                console.log(res);
+            })
+                .catch(error => {
+                    console.error(error);
+                })
+            res.end();
+            break;
+        }
+        case "Voucher": {
+            axios.post('http://localhost:8021/demo', {
+                CUSTOMER_PACKAGE: CUSTOMER_INFO_PACKAGE,
+                STATUS: req.body.STATUS,
+                CUSTOMER_ID: req.body.CUSTOMER_ID,
+                CUSTOMER_TOKEN: req.body.CUSTOMER_TOKEN,
+                EXPIRED_TIME: req.body.EXPIRED_TIME,
+            }).then(res => {
+                console.log(`statusCode: ${res.status}`);
+                console.log(res);
+            })
+                .catch(error => {
+                    console.error(error);
+                })
+            res.end();
+            break;
+        }
+        case "Combo": {
+            axios.post('http://localhost:8021/demo', {
+                CUSTOMER_PACKAGE: CUSTOMER_INFO_PACKAGE,
+                STATUS: req.body.STATUS,
+                CUSTOMER_ID: req.body.CUSTOMER_ID,
+                CUSTOMER_TOKEN: req.body.CUSTOMER_TOKEN,
+                EXPIRED_TIME: req.body.EXPIRED_TIME,
+            }).then(res => {
+                console.log(`statusCode: ${res.status}`);
+                console.log(res);
+            })
+                .catch(error => {
+                    console.error(error);
+                })
+            res.end();
+            break;
+        }
+    }
+}
 module.exports = router;
