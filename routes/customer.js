@@ -113,14 +113,14 @@ router.post("/LoginEmail", (req, res) => {
         }
         else {
             con.query(
-                "select * from CUSTOMER_SECURITY,CUSTOMER_INFO where CUSTOMER_EMAIL='" + req.body.CUSTOMER_EMAIL
+                "select * from CUSTOMER_SECURITY,CUSTOMER_INFO where CUSTOMER_EMAIL='" + req.body.CUSTOMER_EMAIL.toUpperCase()
                 + "' and CUS_PASSWORD = '" + req.body.CUS_PASSWORD
                 + "' and CUSTOMER_SECURITY.CUSTOMER_ID=CUSTOMER_INFO.CUSTOMER_ID;", (err, result) => {
                     if (err) throw err;
                     if (!result) { res.send("Please reenter your Account"); }
                     else {
                    
-                        const TOKEN = crypto.createHash(algorithm).update(req.body.CUS_PASSWORD + req.body.CUSTOMER_EMAIL).digest("hex");     
+                        const TOKEN = crypto.createHash(algorithm).update(req.body.CUS_PASSWORD + req.body.CUSTOMER_EMAIL.toUpperCase()).digest("hex");     
                        
                         const BackData =
                             [
@@ -154,10 +154,12 @@ router.post("/getAppId", (req, res) => {
 // send Account info
 router.post(`/getUserInfo`, (req, res) => {
     if (!req.body.CUSTOMER_ID) {
+        console.log(req.body.CUSTOMER_ID);
         console.log("here is not the info");
         res.end();
     }
     else {
+        console.log(req.body.CUSTOMER_TOKEN)
         if (!req.body.CUSTOMER_TOKEN) {
             res.send([{ ERROR: "YOU DON'T HAVE A TOKEN TO ACCESS THIS DATA" }]);
         }
