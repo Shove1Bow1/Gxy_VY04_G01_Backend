@@ -142,6 +142,16 @@ router.post("/LoginEmail", (req, res) => {
 router.post("/LoginPhoneNumber", (req, res) => {
 
 })
+//LOT OUT
+router.post("/Logout",(req,res)=>{
+    res.send([{
+        CUSTOMER_ID:null,
+        CUSTOMER_TOKEN:null,
+        EXPIRED_TIME:null,
+        CUSTOMER_PACKAGE:null,
+        APP_ID:req.body.APP_ID
+    }])
+})
 // get app id
 router.post("/getAppId", (req, res) => {
     if (ARRAY_APP_ID.includes(req.body.APP_ID)) {

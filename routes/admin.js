@@ -4,6 +4,7 @@ var router = express.Router();
 const crypto=require("crypto");
 const algorithm="sha256";
 /* GET Admin listing. */
+var ARRAY_APP_ID = ["PROFILE", "FLIGHT", "HOTEL", "AIRPORT", "APART", "XPERIENCE", "CARRENTAL", "EATS", "VOUCHER", "COMBO"];
 router.get("/getServiceManager", (req, res, next) => {
   if(true){
       con.query("select * from ADMIN where ADMIN.ADMIN_ID='AD01"+"';", function (err, result, filesd) {
@@ -33,35 +34,60 @@ router.get("/getServiceManager/:id", (req, res) => {
       res.send(JSON.stringify(result));
   });
 })
-router.get("/getBaremPrice",(req,res)=>{
+router.post("/getBaremPrice",(req,res)=>{
   const id=(req.body.APP_ID);
   console.log(id);
-  con.query("select APP_ID,MIN_PRICE,MAX_PRICE from SERVICE_PROVIDER where APP_ID ='"+req.body.APP_ID+"';",(err,result,filesd)=>{
+  if(!req.body.APP_ID){
+    res.end();
+  }
+  if(!ARRAY_APP_ID.includes(req.body.APP_ID)){
+    res.end();
+  }
+  else {
+    con.query("select APP_ID,MIN_PRICE,MAX_PRICE from SERVICE_PROVIDER where APP_ID ='" + req.body.APP_ID + "';", (err, result, filesd) => {
       console.log(result);
-      if(err) throw err;
+      if (err) throw err;
       res.send(JSON.stringify(result));
-  })
-})
+    });
+  }
+});
 // 
 router.get("/getBaremExchangePoint",(req,res)=>{
   const id=(req.body.APP_ID);
-  console.log(id);
-  con.query("select APP_ID,POINT_EXCHANGE_RANGE from SERVICE_PROVIDER where APP_ID ='"+req.body.APP_ID+"';",(err,result,filesd)=>{
+  if(!req.body.APP_ID){
+    res.end();
+  }
+  if(!ARRAY_APP_ID.includes(req.body.APP_ID)){
+    res.end();
+  }
+  else {
+    console.log(id);
+    con.query("select APP_ID,POINT_EXCHANGE_RANGE from SERVICE_PROVIDER where APP_ID ='" + req.body.APP_ID + "';", (err, result, filesd) => {
       console.log(result);
-      if(err) throw err;
+      if (err) throw err;
       res.send(JSON.stringify(result));
-  })
+    })
+  }
+ 
 })
 router.post("/getServiceManager/:id",(req,res,next)=>{
-  con.query("Update SERVICE_PROVIDER set MIN_PRICE=" + parseInt(req.body.MIN_PRICE) +
+  if(!req.params.id){
+    res.end();
+  }
+  else{
+      con.query("Update SERVICE_PROVIDER set MIN_PRICE=" + parseInt(req.body.MIN_PRICE) +
       ", MAX_PRICE=" + parseInt(req.body.MAX_PRICE) +
       ", POINT_EXCHANGE_RANGE =" + parseInt(req.body.POINT_EXCHANGE_RANGE) +
       " WHERE APP_ID='" + req.path.id + "';",
       function (err, result, filesd) {
           if (err) throw err;
           console.log("update")
-          res.send("Updated")
+          res.send([{
+
+          }])
       });
+  }
+
 })
 
 router.post("/Login",(req,res,next)=>{
