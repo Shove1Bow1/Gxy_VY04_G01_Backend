@@ -8,17 +8,12 @@ const stripe = require('../stripe');
 const crypto = require("crypto");
 const e = require('express');
 const { stringify } = require('querystring');
-const jwt=require('jsonwebtoken');
 const axios = require('axios');
 const { profile } = require('console');
 const { response } = require('express');
 var ARRAY_APP_ID = ["PROFILE", "FLIGHT", "HOTEL", "AIRPORT", "APART", "XPERIENCE", "CARRENTAL", "EATS", "VOUCHER", "COMBO"];
-let privateKey = "CoTu";
-const TOKEN=jwt.sign({foo:'bar'},privateKey,{algorithm:'RS256'});
-const test={foo:'bar'}
-console.log(TOKEN);
-const SecondToken=jwt.sign(test,privateKey,{algorithm:'RS256'});
-console.log(SecondToken);
+let privateKeyu = "sha256";
+
 router.post("/create-payment-intent", async (req, res) => {
     const items = 3000;
     // Create a PaymentIntent with the order amount and currency
