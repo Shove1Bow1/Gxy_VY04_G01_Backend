@@ -8,11 +8,12 @@ const stripe = require('../stripe');
 const crypto = require("crypto");
 const e = require('express');
 const { stringify } = require('querystring');
+var http = require('http');
 const axios = require('axios');
 const { profile } = require('console');
 const { response } = require('express');
 var ARRAY_APP_ID = ["PROFILE", "FLIGHT", "HOTEL", "AIRPORT", "APART", "XPERIENCE", "CARRENTAL", "EATS", "VOUCHER", "COMBO"];
-let privateKeyu = "sha256";
+let algorithm = "sha256";
 
 router.post("/create-payment-intent", async (req, res) => {
     const items = 3000;
