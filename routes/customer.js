@@ -75,22 +75,26 @@ router.post("/Register", async (req, res) => {
                             req.body.CUSTOMER_EMAIL.toUpperCase() +
                             "','" + req.body.CUS_PASSWORD + "');"
                             , (err, result) => {
-                                const BIRTHDAY = stringify(req.body.BIRTHDAY);
-                                var Year = null, Month = null, Day = null;
+                                const BIRTHDAY = JSON.stringify(req.body.BIRTHDAY);
+                                var Year = "", Month = "", Day = "";
                                 for (var i = 0; i < BIRTHDAY.length; i++) {
-                                    if (i < 4) {
+                                    if (i < 5 && i>0) {
                                         Year += BIRTHDAY[i];
                                     }
-                                    if (i > 4 && i < 7) {
+                                    if (i > 5 && i < 8) {
                                         Month += BIRTHDAY[i];
                                     }
-                                    if (i > 7 && i < 10) {
+                                    if (i > 8 && i < 11) {
                                         Day += BIRTHDAY[i]
                                     }
                                     if (i > 10) {
                                         break;
                                     }
                                 }
+                                console.log(JSON.stringify(req.body.BIRTHDAY));
+                                console.log(Day);
+                                console.log(Month);
+                                console.log(Year);
                                 const CUSTOMER_INFO_PACKAGE = [{
                                     CUSTOMER_NAME: req.body.CUSTOMER_NAME,
                                     CUSTOMER_DAYOFBIRTH: Day,
@@ -104,6 +108,7 @@ router.post("/Register", async (req, res) => {
                                 {
                                     CUSTOMER_PACKAGE: CUSTOMER_INFO_PACKAGE,
                                 }
+                                console.log(CUSTOMER_INFO_PACKAGE);
                                 const HASH_PACKAGE = jwt.sign(PACKAGE_DATA, algorithm, { expiresIn: "7d" });
                                 if (err) console.log(err);
                                 res.send({
