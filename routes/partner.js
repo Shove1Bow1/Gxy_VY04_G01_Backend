@@ -202,5 +202,6 @@ route.post("/getPartnerInfo",(req,res)=>{
         return;
     }
 })
+// insert Transication
 
 module.exports = route;

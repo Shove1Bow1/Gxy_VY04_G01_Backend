@@ -140,7 +140,7 @@ router.post("/LoginEmail", (req, res) => {
                 + "' and CUSTOMER_SECURITY.CUSTOMER_ID=CUSTOMER_INFO.CUSTOMER_ID;", (err, result) => {
                     if (err) {res.end();return;}
                     if (!result[0]) { 
-                        res.send("Please reenter your Account"); 
+                        res.send({ERROR:"Mật khẩu hoặc email không đúng"}); 
                         return;
                     }
                     else {
