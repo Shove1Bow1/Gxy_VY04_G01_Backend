@@ -102,7 +102,7 @@ router.post("/Register", async (req, res) => {
                                     CUSTOMER_GENDER: req.body.GENDER,
                                     CUSTOMER_MONTHOFBIRTH: Month,
                                     CUSTOMER_YEAROFBIRTH: Year,
-                                    CUSTOMER_ID: numericId,
+                                    CUSTOMER_ID: CUSTOMER_ID,
                                 }]
                                 const PACKAGE_DATA =
                                 {
