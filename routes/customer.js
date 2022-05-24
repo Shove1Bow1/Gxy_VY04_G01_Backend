@@ -95,7 +95,7 @@ router.post("/Register", async (req, res) => {
                                 console.log(Day);
                                 console.log(Month);
                                 console.log(Year);
-                                const CUSTOMER_INFO_PACKAGE = [{
+                                const CUSTOMER_INFO_PACKAGE = {
                                     CUSTOMER_NAME: req.body.CUSTOMER_NAME,
                                     CUSTOMER_DAYOFBIRTH: Day,
                                     CUSTOMER_ADDRESS: null,
@@ -103,7 +103,7 @@ router.post("/Register", async (req, res) => {
                                     CUSTOMER_MONTHOFBIRTH: Month,
                                     CUSTOMER_YEAROFBIRTH: Year,
                                     CUSTOMER_ID: CUSTOMER_ID,
-                                }]
+                                }
                                 const PACKAGE_DATA =
                                 {
                                     CUSTOMER_PACKAGE: CUSTOMER_INFO_PACKAGE,
