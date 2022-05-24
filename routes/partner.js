@@ -31,7 +31,7 @@ route.post("/checkEmail",(req,res)=>{
             return;
         }
         if (existEmail[0]) {
-            res.send({ ERROR: "Email Already Used" })
+            res.send({ STATUS:false,ERROR: "Email Already Used" })
             return;
         }
     });
