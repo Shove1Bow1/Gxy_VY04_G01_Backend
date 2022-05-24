@@ -48,7 +48,6 @@ const calculateOrderAmount = (items) => {
 ////
 //Register
 router.post("/Register", async (req, res) => {
-
     if (req.body.CUSTOMER_EMAIL) {
         con.query("select CUSTOMER_EMAIL from CUSTOMER_SECURITY where CUSTOMER_EMAIL='" +
             req.body.CUSTOMER_EMAIL + "';", (err, result) => {

@@ -80,13 +80,19 @@ route.post("/Register", ((req, res) => {
                 APP_ID: req.app.APP,
             }
         }
-        else {
-            PARTNER_PACKAGE = {
-                PARTNER_NAME: result[0].PARTNER_NAME,
-                PARTNER_ID: result[0].PARTNER_ID,
-                APP_ID: APP_ID,
+        else{
+            if (!APP_ID.includes(req.body.APP)) {
+                res.send({ ERROR: "Tài khoản không đăng ký service này" });
+                return;
             }
-        }
+            else {
+                PARTNER_PACKAGE = {
+                    PARTNER_NAME: result[0].PARTNER_NAME,
+                    PARTNER_ID: result[0].PARTNER_ID,
+                    APP_ID: APP_ID,
+                }
+            }
+        } 
         const PARTNER_HASH_PACKAGE = jwt.sign(PARTNER_PACKAGE, algorithm, { expiresIn: "24h" })
         res.send({
             STATUS: true,
@@ -129,20 +135,26 @@ route.post("/Login", ((req, res) => {
                     ARRAY_APP_INCLUDE.push(resultApp[i].APP_ID);
                 }
                 var PARTNER_PACKAGE = {};
-                if (req.body.APP_ID && ARRAY_APP_INCLUDE.includes(req.body.APP_ID)) {
+                if (req.body.APP && ARRAY_APP_INCLUDE.includes(req.body.APP_ID)) {
                     PARTNER_PACKAGE = {
                         PARTNER_NAME: result[0].PARTNER_NAME,
                         PARTNER_ID: result[0].PARTNER_ID,
-                        APP_ID: req.body.APP_ID,
+                        APP_ID: req.body.APP,
                     }
                 }
-                else {
-                    PARTNER_PACKAGE = {
-                        PARTNER_NAME: result[0].PARTNER_NAME,
-                        PARTNER_ID: result[0].PARTNER_ID,
-                        APP_ID: ARRAY_APP_INCLUDE,
+                else{
+                    if (!APP_ID.includes(req.body.APP)) {
+                        res.send({ ERROR: "Tài khoản không đăng ký service này" });
+                        return;
                     }
-                }
+                    else {
+                        PARTNER_PACKAGE = {
+                            PARTNER_NAME: result[0].PARTNER_NAME,
+                            PARTNER_ID: result[0].PARTNER_ID,
+                            APP_ID: APP_ID,
+                        }
+                    }
+                } 
                 const PARTNER_HASH_PACKAGE = jwt.sign(PARTNER_PACKAGE, algorithm, { expiresIn: "24h" })
                 res.send({
                     STATUS: true,
