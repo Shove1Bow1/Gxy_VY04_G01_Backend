@@ -214,6 +214,7 @@ router.post("/getStatus", (req, res) => {
     }
     try {
         if (jwt.verify(req.body.TOKEN, algorithm)) {
+            console.log("true");
             res.send({
                 STATUS: true,
             })
