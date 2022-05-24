@@ -47,7 +47,6 @@ route.post("/Register", ((req, res) => {
         }
         numericId = result[0].NUMBER + 1;
         const PARTNER_ID = 'PAR' + numericId;
-        console.log(PARTNER_ID);
         conn.query("insert into PARTNER_INFO(PARTNER_ID,PARTNER_NAME) values ('" + PARTNER_ID + "','" +
             + req.body.PARTNER_NAME + "');"
             , (err, result) => {
@@ -126,7 +125,6 @@ route.post("/Login", ((req, res) => {
                     res.end();
                     return;
                 }
-                console.log(resultApp);
                 for (var i = 0; i < resultApp.length; i++) {
                     ARRAY_APP_INCLUDE.push(resultApp[i].APP_ID);
                 }

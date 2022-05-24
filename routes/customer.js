@@ -91,10 +91,6 @@ router.post("/Register", async (req, res) => {
                                         break;
                                     }
                                 }
-                                console.log(JSON.stringify(req.body.BIRTHDAY));
-                                console.log(Day);
-                                console.log(Month);
-                                console.log(Year);
                                 const CUSTOMER_INFO_PACKAGE = {
                                     CUSTOMER_NAME: req.body.CUSTOMER_NAME,
                                     CUSTOMER_DAYOFBIRTH: Day,
@@ -108,7 +104,6 @@ router.post("/Register", async (req, res) => {
                                 {
                                     CUSTOMER_PACKAGE: CUSTOMER_INFO_PACKAGE,
                                 }
-                                console.log(CUSTOMER_INFO_PACKAGE);
                                 const HASH_PACKAGE = jwt.sign(PACKAGE_DATA, algorithm, { expiresIn: "7d" });
                                 if (err) console.log(err);
                                 res.send({
@@ -234,7 +229,6 @@ router.post("/getStatus", (req, res) => {
 // send Account info
 router.post("/getCustomerInfo", (req, res) => {
     if (!req.body.TOKEN) {
-        console.log("no");
         res.end();
         return;
     }
@@ -250,7 +244,6 @@ router.post("/getCustomerInfo", (req, res) => {
                 CUSTOMER_YEAROFBIRTH: INFO.CUSTOMER_PACKAGE.CUSTOMER_YEAROFBIRTH,
                 CUSTOMER_ID:INFO.CUSTOMER_PACKAGE.CUSTOMER_ID,
             }
-            console.log(INFO);
             if (ARRAY_APP_ID.includes(req.body.APP_ID)) {
                 conn.query("select CUSTOMER_EMAIL from CUSTOMER_SECURITY where CUSTOMER_ID='" + INFO.CUSTOMER_PACKAGE.CUSTOMER_ID + "';", (err, req) => {
                     if (err) res.end();
