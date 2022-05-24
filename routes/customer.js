@@ -221,7 +221,7 @@ router.post("/getStatus", (req, res) => {
     }
     catch (e) {
         res.send({
-            DELETE: true,
+            STATUS: true,
         });
     }
 })
