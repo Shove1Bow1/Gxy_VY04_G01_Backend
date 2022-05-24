@@ -143,7 +143,7 @@ route.post("/Login", ((req, res) => {
                     }
                 }
                 else{
-                    if (!APP_ID.includes(req.body.APP)&& req.body.APP) {
+                    if (!ARRAY_APP_INCLUDE.includes(req.body.APP)&& req.body.APP) {
                         res.send({ ERROR: "Tài khoản không đăng ký service này" });
                         return;
                     }
