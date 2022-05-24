@@ -418,5 +418,5 @@ router.post("/updateInfo", (req, res) => {
     }
 })
 // insert Transication
-router.get("/insertTransication",(req))
+// router.get("/insertTransication",(req))
 module.exports = router;
