@@ -232,7 +232,7 @@ router.post("/getStatus", (req, res) => {
     }
 })
 // send Account info
-router.get(`/getUserInfo`, (req, res) => {
+router.post("/getCustomerInfo", (req, res) => {
     if (!req.body.TOKEN) {
         console.log("no");
         res.end();
@@ -266,7 +266,7 @@ router.get(`/getUserInfo`, (req, res) => {
             else {
                 res.send({
                     PACKAGE: CUSTOMER_INFO_PACKAGE,
-                    CUSTOMER_ID:INFO.CUSTOMER_ID
+                    CUSTOMER_ID:INFO.CUSTOMER_PACKAGE.CUSTOMER_ID
                 })
                 return;
             }
