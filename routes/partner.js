@@ -101,8 +101,12 @@ route.post("/Register", ((req, res) => {
 // Partner Login
 
 route.post("/Login", ((req, res) => {
-    if(!req.body.PARTNER_PASSWORD && !req.body.PARTNER_EMAIL || (req.body.PARTNER_PASSWORD && !req.body.PARTNER_EMAIL) || (!req.body.PARTNER_PASSWORD && req.body.PARTNER_EMAIL)){
-        res.end("error");
+    if(!req.body.PARTNER_EMAIL){
+        res.send({ERROR:"Please enter your email"});
+        return;
+    }
+    if(!req.body.PARTNER_PASSWORD){
+        res.send({ERROR:"Please enter your password"});
         return;
     }
     conn.query("select * from PARTNER_SECURITY,PARTNER_INFO,PARTNER_SERVICE where PARTNER_EMAIL='" +
@@ -113,7 +117,7 @@ route.post("/Login", ((req, res) => {
                 return;
             };
             if (!result[0]) {
-                res.send([{ ERROR: "Result is empty" }]);
+                res.send([{ ERROR: "Your Password or Email is wrong" }]);
                 return;
             }
         conn.query("select * from PARTNER_SERVICE where PARTNER_ID='" + result[0].PARTNER_ID + "';", (err, resultApp) => {
