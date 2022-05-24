@@ -132,11 +132,11 @@ router.post("/Register", async (req, res) => {
 //LOGIN USING EMAIL
 router.post("/LoginEmail", (req, res) => {
     if (!req.body.CUSTOMER_EMAIL) {
-        res.send([{ ERROR: "Please type in Your Email" }]);
+        res.send({ ERROR: "Please type in Your Email" });
     }
     else {
         if (!req.body.CUS_PASSWORD) {
-            res.send([{ ERROR: "please type in Your Password" }]);
+            res.send({ ERROR: "please type in Your Password" });
         }
         else {
             con.query(
@@ -418,4 +418,5 @@ router.post("/updateInfo", (req, res) => {
     }
 })
 // insert Transication
+router.get("/insertTransication",(req))
 module.exports = router;
