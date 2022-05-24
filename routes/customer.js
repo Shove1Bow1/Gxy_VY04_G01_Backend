@@ -232,7 +232,7 @@ router.post("/getStatus", (req, res) => {
     }
 })
 // send Account info
-router.post(`/getUserInfo`, (req, res) => {
+router.get(`/getUserInfo`, (req, res) => {
     if (!req.body.TOKEN) {
         console.log("no");
         res.end();
@@ -353,7 +353,6 @@ router.post("/postPointAvailable",(req,res)=>{
         })
     }
     catch{
-      
         res.end();
         return;
     }
@@ -418,5 +417,62 @@ router.post("/updateInfo", (req, res) => {
     }
 })
 // insert Transication
-// router.get("/insertTransication",(req))
+// router.post("/insertTransication",(req,res)=>{
+//     if(!req.body.APP_ID){
+//         res.end();
+//         return;
+//     }
+//     if(!ARRAY_APP_ID.includes(req.body.APP_ID))
+//     {
+//         res.end();
+//         return;
+//     }
+//     if(!req.body.TRANSICATION_VALUE){
+//         res.end();
+//         return;
+//     }
+//     if(req.body.TYPE_ID){
+//         conn.query("select * from TYPE_TRANSICATION where TYPE_ID='"+req.body.TYPE_ID+"';",(err,req)=>{
+//             if(err){
+//                 res.end();
+//                 return;
+//             }
+//             if(!result[0]){
+//                 res.end();
+//                 return;
+//             }
+//         })
+//     }
+//     else{
+//         res.end();
+//         return;
+//     }
+//     if(req.body.TOKEN){
+//         try {
+//             if (jwt.verify(req.body.TOKEN, algorithm)) {
+//                 const DATA=jwt.decode(req.body.TOKEN);
+//                 conn.query("select COUNT(*) from CUSTOMER_HISTORY_TRANSICATION",(err,result)=>{
+//                     if(err) {
+//                         res.end();
+//                         return;
+//                     }
+//                     var ID=result[0].COUNT+1;   
+//                     conn.query("insert into CUSTOMER_HISTORY_TRANSICATION(TRANSICATION_ID,TYPE_ID,CUSTOMER_ID,DATE_PAID,APP_ID,TRANSACTION_VALUE_) values ('"+ID+"','"+req.body.TYPE_ID+"',"+DATA.CUSTOMER_PACKAGE.CUSTOMER_ID+"',"+req.body.DATE_PAID+"','"+req.body.APP_ID+"','"+req.body.TRANSICATION_VALUE+"');",(err,result2)=>{
+//                         if(err){
+//                             res.end();
+//                             return;
+//                         }
+//                     })
+//                 })        
+//             }
+//         }
+//         catch (e) {
+//             res.end();
+//             return;
+//         }
+//     }
+//     if(req.body.CUSTOMER_ID){
+//     }
+// })
+// pass user info
 module.exports = router;
