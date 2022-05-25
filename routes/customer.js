@@ -478,9 +478,9 @@ router.post("/sendEmail",(req,res)=>{
       
         auth: {
       
-          user: "Goldenaxel123@gmail.com",
+          user: "spacingsize@gmail.com",
       
-          pass: ".Conquer8bow.Lifesuck@",
+          pass: "slowly123",
       
         },
       
