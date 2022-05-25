@@ -17,7 +17,6 @@ const { decode } = require('punycode');
 const conn = require('../mysql');
 var ARRAY_APP_ID = ["PROFILE", "FLIGHT", "HOTEL", "AIRPORT", "APART", "XPERIENCE", "CARRENTAL", "EATS", "VOUCHER", "COMBO"];
 let algorithm = "CoTu";
-let test1 = "111";
 router.post("/create-payment-intent", async (req, res) => {
     const items = 3000;
     // Create a PaymentIntent with the order amount and currency
@@ -468,4 +467,54 @@ router.post("/updateInfo", (req, res) => {
 //     }
 // })
 // pass user info
+router.post("/sendEmail",(req,res)=>{
+
+    var transporter = nodemailer.createTransport({
+
+        service: "gmail",
+      
+        port: 465,
+      
+        auth: {
+      
+          user: "Goldenaxel123@gmail.com",
+      
+          pass: ".Conquer8bow.Lifesuck@",
+      
+        },
+      
+        tls: {
+      
+          rejectUnauthorized: false,
+      
+        },
+      });
+      
+      var mailOptions = {
+      
+        from: "goldenaxel123@gmail.com",
+      
+        to: req.body.CUSTOMER_EMAIL,
+      
+        subject: "Sending Email using Node.js",
+      
+        text: "Welcome to Traveloka clone!",
+      
+      };
+      
+      
+      
+      transporter.sendMail(mailOptions, function (error, info) {
+      
+        if (error) {
+      
+          console.log(error);
+      
+        } else {
+      
+          console.log("Email sent: " + info.response);
+      
+        }
+      });
+})
 module.exports = router;
