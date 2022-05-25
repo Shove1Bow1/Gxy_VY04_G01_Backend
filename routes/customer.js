@@ -468,54 +468,54 @@ router.post("/updateInfo", (req, res) => {
 //     }
 // })
 // pass user info
-router.post("/sendEmail",(req,res)=>{
+// router.post("/sendEmail",(req,res)=>{
 
-    var transporter = nodemailer.createTransport({
+//     var transporter = nodemailer.createTransport({
 
-        service: "gmail",
+//         service: "gmail",
       
-        port: 465,
+//         port: 465,
       
-        auth: {
+//         auth: {
       
-          user: "spacingsize@gmail.com",
+//           user: "spacingsize@gmail.com",
       
-          pass: "slowly123",
+//           pass: "slowly123",
       
-        },
+//         },
       
-        tls: {
+//         tls: {
       
-          rejectUnauthorized: false,
+//           rejectUnauthorized: false,
       
-        },
-      });
+//         },
+//       });
       
-      var mailOptions = {
+//       var mailOptions = {
       
-        from: "goldenaxel123@gmail.com",
+//         from: "goldenaxel123@gmail.com",
       
-        to: req.body.CUSTOMER_EMAIL,
+//         to: req.body.CUSTOMER_EMAIL,
       
-        subject: "Sending Email using Node.js",
+//         subject: "Sending Email using Node.js",
       
-        text: "Welcome to Traveloka clone!",
+//         text: "Welcome to Traveloka clone!",
       
-      };
+//       };
       
       
       
-      transporter.sendMail(mailOptions, function (error, info) {
+//       transporter.sendMail(mailOptions, function (error, info) {
       
-        if (error) {
+//         if (error) {
       
-          console.log(error);
+//           console.log(error);
       
-        } else {
+//         } else {
       
-          console.log("Email sent: " + info.response);
+//           console.log("Email sent: " + info.response);
       
-        }
-      });
-})
+//         }
+//       });
+// })
 module.exports = router;
