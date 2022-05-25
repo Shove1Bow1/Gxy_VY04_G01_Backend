@@ -14,7 +14,6 @@ const http = require('http');
 const { profile } = require('console');
 const { response } = require('express');
 const { decode } = require('punycode');
-var nodemailer = require("nodemailer");
 const conn = require('../mysql');
 var ARRAY_APP_ID = ["PROFILE", "FLIGHT", "HOTEL", "AIRPORT", "APART", "XPERIENCE", "CARRENTAL", "EATS", "VOUCHER", "COMBO"];
 let algorithm = "CoTu";
