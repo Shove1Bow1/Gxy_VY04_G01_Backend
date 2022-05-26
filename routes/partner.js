@@ -67,11 +67,17 @@ route.post("/Register", ((req, res) => {
             }
         );
         const APP_ID = req.body.APP_ID;
-        for (var i = 0; i < APP_ID.length; i++) {
-            conn.query("insert into PARTNER_SERVICE (PARTNER_ID,APP_ID) values ('" + PARTNER_ID + "','" + APP_ID[i] + "');", (err, result) => {
-                if (err) throw err;
-            })
-        }
+        conn.query("select COUNT(*) as total from PARTNER_SERVICE",(err,resultID)=>{
+            var PAR_SER_ID=resultID[0].total+1;
+            for (var i = 0; i < APP_ID.length; i++) {
+                const PAR_SER_ID_INSERT="PS"+PAR_SER_ID;
+                conn.query("insert into PARTNER_SERVICE (PAR_SER_ID,PARTNER_ID,APP_ID) values ('"+PAR_SER_ID_INSERT+"','" + PARTNER_ID + "','" + APP_ID[i] + "');", (err, result) => {
+                    if (err) throw err;
+                })
+                PAR_SER_ID++;
+            }
+        })
+     
         var PARTNER_PACKAGE = {};
         if (req.body.APP && APP_ID.includes(req.body.APP)) {
             PARTNER_PACKAGE = {

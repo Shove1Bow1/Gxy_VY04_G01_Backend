@@ -357,51 +357,50 @@ router.post("/updateInfo", (req, res) => {
     }
     try{
         if(!jwt.verify(req.body.TOKEN,algorithm)){
-
-        }
-        const DATA=jwt.decode(req.body.TOKEN);
-        conn.query("UPDATE CUSTOMER_INFO SET FULL_NAME='"+req.body.CUSTOMER_NAME+"',GENDER='"+req.body.CUSTOMER_GENDER+"',DATE_OF_BIRTH='"+req.body.CUSTOMER_BIRTHDAY+"',ADDRESS='"+req.body.CUSTOMER_ADDRESS+"' where CUSTOMER_ID='"+DATA.CUSTOMER_PACKAGE.CUSTOMER_ID+"';",(err,result)=>{
-            if(err){
-                res.end();
+            const DATA = jwt.decode(req.body.TOKEN);
+            conn.query("UPDATE CUSTOMER_INFO SET FULL_NAME='" + req.body.CUSTOMER_NAME + "',GENDER='" + req.body.CUSTOMER_GENDER + "',DATE_OF_BIRTH='" + req.body.CUSTOMER_BIRTHDAY + "',ADDRESS='" + req.body.CUSTOMER_ADDRESS + "' where CUSTOMER_ID='" + DATA.CUSTOMER_PACKAGE.CUSTOMER_ID + "';", (err, result) => {
+                if (err) {
+                    res.end();
+                    return;
+                }
+                var Year = "", Month = "", Day = "";
+                const BIRTHDAY = JSON.stringify(req.body.CUSTOMER_BIRTHDAY);
+                for (var i = 0; i < BIRTHDAY.length; i++) {
+                    if (i < 5 && i > 0) {
+                        Year += BIRTHDAY[i];
+                    }
+                    if (i > 5 && i < 8) {
+                        Month += BIRTHDAY[i];
+                    }
+                    if (i > 8 && i < 11) {
+                        Day += BIRTHDAY[i]
+                    }
+                    if (i > 10) {
+                        break;
+                    }
+                }
+                const CUSTOMER_INFO_PACKAGE = {
+                    CUSTOMER_NAME: req.body.CUSTOMER_NAME,
+                    CUSTOMER_DAYOFBIRTH: Day,
+                    CUSTOMER_ADDRESS: req.body.ADDRESS,
+                    CUSTOMER_GENDER: req.body.CUSTOMER_GENDER,
+                    CUSTOMER_MONTHOFBIRTH: Month,
+                    CUSTOMER_YEAROFBIRTH: Year,
+                    CUSTOMER_ID: DATA.CUSTOMER_PACKAGE.CUSTOMER_ID,
+                }
+                const PACKAGE_DATA =
+                {
+                    CUSTOMER_PACKAGE: CUSTOMER_INFO_PACKAGE,
+                }
+                const HASH_PACKAGE = jwt.sign(PACKAGE_DATA, algorithm, { expiresIn: "7d" });
+                res.send({
+                    STATUS: true,
+                    EXPIRED_TIME: 1000 * 60 * 60 * 24 * 7,
+                    PACKAGE: HASH_PACKAGE
+                });
                 return;
-            }
-            var Year = "", Month = "", Day = "";
-            const BIRTHDAY = JSON.stringify(req.body.CUSTOMER_BIRTHDAY);
-            for (var i = 0; i < BIRTHDAY.length; i++) {
-                if (i < 5 && i > 0) {
-                    Year += BIRTHDAY[i];
-                }
-                if (i > 5 && i < 8) {
-                    Month += BIRTHDAY[i];
-                }
-                if (i > 8 && i < 11) {
-                    Day += BIRTHDAY[i]
-                }
-                if (i > 10) {
-                    break;
-                }
-            }
-            const CUSTOMER_INFO_PACKAGE = {
-                CUSTOMER_NAME: req.body.CUSTOMER_NAME,
-                CUSTOMER_DAYOFBIRTH: Day,
-                CUSTOMER_ADDRESS: req.body.ADDRESS,
-                CUSTOMER_GENDER: req.body.CUSTOMER_GENDER,
-                CUSTOMER_MONTHOFBIRTH: Month,
-                CUSTOMER_YEAROFBIRTH: Year,
-                CUSTOMER_ID: DATA.CUSTOMER_PACKAGE.CUSTOMER_ID,
-            }
-            const PACKAGE_DATA =
-            {
-                CUSTOMER_PACKAGE: CUSTOMER_INFO_PACKAGE,
-            }
-            const HASH_PACKAGE = jwt.sign(PACKAGE_DATA, algorithm, { expiresIn: "7d" });
-            res.send({
-                STATUS: true,
-                EXPIRED_TIME: 1000 * 60 * 60 * 24 * 7,
-                PACKAGE: HASH_PACKAGE
-            });
-            return;
-        })
+            })
+        }
     }
     catch{
         res.end();
@@ -468,53 +467,46 @@ router.post("/updateInfo", (req, res) => {
 // })
 // pass user info
 // router.post("/sendEmail",(req,res)=>{
-
 //     var transporter = nodemailer.createTransport({
-
 //         service: "gmail",
-      
 //         port: 465,
-      
 //         auth: {
-      
 //           user: "spacingsize@gmail.com",
-      
 //           pass: "slowly123",
-      
 //         },
-      
 //         tls: {
-      
 //           rejectUnauthorized: false,
-      
 //         },
 //       });
-      
 //       var mailOptions = {
-      
 //         from: "goldenaxel123@gmail.com",
-      
 //         to: req.body.CUSTOMER_EMAIL,
-      
 //         subject: "Sending Email using Node.js",
-      
 //         text: "Welcome to Traveloka clone!",
-      
 //       };
-      
-      
-      
 //       transporter.sendMail(mailOptions, function (error, info) {
-      
 //         if (error) {
-      
 //           console.log(error);
-      
 //         } else {
-      
 //           console.log("Email sent: " + info.response);
-      
 //         }
 //       });
 // })
+router.post("/getHistoryPoint",(req,res)=>{
+    if(!req.body.TOKEN){
+        res.end();
+        return;
+    }
+    try{
+        if(jwt.verify(req.body.TOKEN,algorithm)){
+            const DATA = jwt.decode(req.body.TOKEN);
+            
+        }
+        
+    }
+    catch{
+        res.end();
+        return;    
+    }
+})
 module.exports = router;
