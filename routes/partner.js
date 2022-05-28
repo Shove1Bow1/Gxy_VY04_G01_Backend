@@ -6,19 +6,8 @@ const tempRun = express();
 const route = express.Router();
 const jwt = require('jsonwebtoken');
 var ARRAY_APP_ID = ["PROFILE", "FLIGHT", "HOTEL", "AIRPORT", "APART", "XPERIENCE", "CARRENTAL", "EATS", "VOUCHER", "COMBO"];
-let algorithm = "CoTu";
-// Get App Id
-route.post("/getAppId", (req, res) => {
-    if (!req.body.APP_ID) {
-        res.end();
-    }
-    if (ARRAY_APP_ID.includes(req.body.APP_ID)) {
-        res.send([{ APP_ID: req.body.APP_ID }]);
-    }
-    else {
-        res.send([{ APP_ID: "Profile" }]);
-    }
-})
+let secretKey = "CoTu";
+let algorithm ="sha256";
 // Register a Partner Account
 route.post("/checkEmail",(req,res)=>{
     if (!req.body.PARTNER_EMAIL) {
@@ -38,8 +27,6 @@ route.post("/checkEmail",(req,res)=>{
 })
 route.post("/Register", ((req, res) => {
     var numericId;
-    console.log(req.body.PARTNER_EMAIL);
-   
     conn.query("select COUNT(*) as NUMBER from PARTNER_SECURITY", (err, result) => {
         if (err) {
             res.end();
@@ -55,9 +42,10 @@ route.post("/Register", ((req, res) => {
                     return;
                 }
             })
+        const PARTNER_PASSWORD=crypto.createHash(algorithm).update(req.body.PARTNER_PASSWORD).digest("hex");
         conn.query("insert into PARTNER_SECURITY(PARTNER_ID,PARTNER_EMAIL,PARTNER_PASSWORD) values ('" + PARTNER_ID +
             "','" + req.body.PARTNER_EMAIL.toUpperCase() +
-            "','" + req.body.PARTNER_PASSWORD + "');"
+            "','" + PARTNER_PASSWORD + "');"
             , (err, result) => {
                 if (err) {
                     res.end();
@@ -71,19 +59,20 @@ route.post("/Register", ((req, res) => {
             var PAR_SER_ID=resultID[0].total+1;
             for (var i = 0; i < APP_ID.length; i++) {
                 const PAR_SER_ID_INSERT="PS"+PAR_SER_ID;
+                console.log(APP_ID[i]);
                 conn.query("insert into PARTNER_SERVICE (PAR_SER_ID,PARTNER_ID,APP_ID) values ('"+PAR_SER_ID_INSERT+"','" + PARTNER_ID + "','" + APP_ID[i] + "');", (err, result) => {
                     if (err) throw err;
                 })
-                PAR_SER_ID++;
+                PAR_SER_ID+=1;
             }
         })
      
         var PARTNER_PACKAGE = {};
         if (req.body.APP && APP_ID.includes(req.body.APP)) {
             PARTNER_PACKAGE = {
-                PARTNER_NAME: result[0].PARTNER_NAME,
-                PARTNER_ID: result[0].PARTNER_ID,
-                APP_ID: req.app.APP,
+                PARTNER_NAME: req.body.PARTNER_NAME,
+                PARTNER_ID: PARTNER_ID,
+                APP_ID: req.body.APP,
             }
         }
         else{
@@ -99,7 +88,7 @@ route.post("/Register", ((req, res) => {
                 }
             }
         } 
-        const PARTNER_HASH_PACKAGE = jwt.sign(PARTNER_PACKAGE, algorithm, { expiresIn: "24h" })
+        const PARTNER_HASH_PACKAGE = jwt.sign(PARTNER_PACKAGE, secretKey, { expiresIn: "24h" })
         res.send({
             STATUS: true,
             EXPIRED_TIME: 3600 * 24,
@@ -116,13 +105,15 @@ route.post("/Login", ((req, res) => {
         res.send({ ERROR: "Please enter your email" });
         return;
     }
-    if (!req.body.PARTNER_PASSWORD) {
+    if (!req.body.PARTNER_PASSWORD) {   
         res.send({ ERROR: "Please enter your password" });
         return;
     }
-    conn.query("select * from PARTNER_SECURITY,PARTNER_INFO,PARTNER_SERVICE where PARTNER_EMAIL='" +
+    console.log(req.body.PARTNER_EMAIL);
+    const PARTNER_PASSWORD=crypto.createHash(algorithm).update(req.body.PARTNER_PASSWORD).digest("hex");
+    conn.query("select * from PARTNER_SECURITY,PARTNER_INFO where PARTNER_EMAIL='" +
         req.body.PARTNER_EMAIL.toUpperCase() + "' and PARTNER_PASSWORD='" +
-        req.body.PARTNER_PASSWORD + "' and PARTNER_SECURITY.PARTNER_ID=PARTNER_INFO.PARTNER_ID;", (err, result) => {
+        PARTNER_PASSWORD + "' and PARTNER_SECURITY.PARTNER_ID=PARTNER_INFO.PARTNER_ID;", (err, result) => {
             if (err) {
                 res.end();
                 return;
@@ -137,11 +128,15 @@ route.post("/Login", ((req, res) => {
                     res.end();
                     return;
                 }
+                console.log(resultApp);
                 for (var i = 0; i < resultApp.length; i++) {
                     ARRAY_APP_INCLUDE.push(resultApp[i].APP_ID);
-                }
-                var PARTNER_PACKAGE = {};
-                if (req.body.APP && ARRAY_APP_INCLUDE.includes(req.body.APP)) {
+                }  
+             
+                var PARTNER_PACKAGE = {};  
+                console.log(ARRAY_APP_INCLUDE);
+                if (req.body.APP && ARRAY_APP_INCLUDE.includes(req.body.APP)) {   
+                    console.log("check")
                     PARTNER_PACKAGE = {
                         PARTNER_NAME: result[0].PARTNER_NAME,
                         PARTNER_ID: result[0].PARTNER_ID,
@@ -149,6 +144,7 @@ route.post("/Login", ((req, res) => {
                     }
                 }
                 else{
+                  
                     if (!ARRAY_APP_INCLUDE.includes(req.body.APP)&& req.body.APP) {
                         res.send({ ERROR: "Tài khoản không đăng ký service này" });
                         return;
@@ -161,7 +157,7 @@ route.post("/Login", ((req, res) => {
                         }
                     }
                 } 
-                const PARTNER_HASH_PACKAGE = jwt.sign(PARTNER_PACKAGE, algorithm, { expiresIn: "24h" })
+                const PARTNER_HASH_PACKAGE = jwt.sign(PARTNER_PACKAGE, secretKey, { expiresIn: "24h" })
                 res.send({
                     STATUS: true,
                     TOKEN: PARTNER_HASH_PACKAGE,
@@ -222,6 +218,5 @@ route.post("/getPartnerInfo", (req, res) => {
         return;
     }
 })
-// insert Transication
 
 module.exports = route;

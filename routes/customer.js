@@ -15,8 +15,11 @@ const { profile } = require('console');
 const { response } = require('express');
 const { decode } = require('punycode');
 const conn = require('../mysql');
+const { nextTick } = require('process');
+const { addAbortSignal } = require('stream');
 var ARRAY_APP_ID = ["PROFILE", "FLIGHT", "HOTEL", "AIRPORT", "APART", "XPERIENCE", "CARRENTAL", "EATS", "VOUCHER", "COMBO"];
-let algorithm = "CoTu";
+let algorithm = "sha256";
+let secretKey ="CoTu"
 router.post("/create-payment-intent", async (req, res) => {
     const items = 3000;
     // Create a PaymentIntent with the order amount and currency
@@ -68,10 +71,11 @@ router.post("/Register", async (req, res) => {
                             , (err, result) => {
                                 if (err) throw (err);
                             })
+                        const PASSWORD_TOKEN=crypto.createHash(algorithm).update(req.body.CUS_PASSWORD).digest("hex");
                         con.query("insert into CUSTOMER_SECURITY(CUSTOMER_ID,CUSTOMER_EMAIL,CUS_PASSWORD) values ('" +
                             CUSTOMER_ID + "','" +
                             req.body.CUSTOMER_EMAIL.toUpperCase() +
-                            "','" + req.body.CUS_PASSWORD + "');"
+                            "','" + PASSWORD_TOKEN + "');"
                             , (err, result) => {
                                 const BIRTHDAY = JSON.stringify(req.body.BIRTHDAY);
                                 var Year = "", Month = "", Day = "";
@@ -90,19 +94,14 @@ router.post("/Register", async (req, res) => {
                                     }
                                 }
                                 const CUSTOMER_INFO_PACKAGE = {
-                                    CUSTOMER_NAME: req.body.CUSTOMER_NAME,
-                                    CUSTOMER_DAYOFBIRTH: Day,
-                                    CUSTOMER_ADDRESS: null,
-                                    CUSTOMER_GENDER: req.body.GENDER,
-                                    CUSTOMER_MONTHOFBIRTH: Month,
-                                    CUSTOMER_YEAROFBIRTH: Year,
                                     CUSTOMER_ID: CUSTOMER_ID,
+                                    CUSTOMER_OTHER_INFO:PASSWORD_TOKEN,
                                 }
                                 const PACKAGE_DATA =
                                 {
                                     CUSTOMER_PACKAGE: CUSTOMER_INFO_PACKAGE,
                                 }
-                                const HASH_PACKAGE = jwt.sign(PACKAGE_DATA, algorithm, { expiresIn: "7d" });
+                                const HASH_PACKAGE = jwt.sign(PACKAGE_DATA, secretKey, { expiresIn: "7d" });
                                 if (err) console.log(err);
                                 res.send({
                                     STATUS: true,
@@ -132,9 +131,10 @@ router.post("/LoginEmail", (req, res) => {
             res.send({ ERROR: "please type in Your Password" });
         }
         else {
+            const PASSWORD_TOKEN=crypto.createHash(algorithm).update(req.body.CUS_PASSWORD).digest("hex");
             con.query(
                 "select * from CUSTOMER_SECURITY,CUSTOMER_INFO where CUSTOMER_EMAIL='" + req.body.CUSTOMER_EMAIL.toUpperCase()
-                + "' and CUS_PASSWORD = '" + req.body.CUS_PASSWORD
+                + "' and CUS_PASSWORD = '" + PASSWORD_TOKEN
                 + "' and CUSTOMER_SECURITY.CUSTOMER_ID=CUSTOMER_INFO.CUSTOMER_ID;", (err, result) => {
                     if (err) {res.end();return;}
                     if (!result[0]) { 
@@ -142,36 +142,15 @@ router.post("/LoginEmail", (req, res) => {
                         return;
                     }
                     else {
-                        var Year = "", Month = "", Day = "";
-                        const BIRTHDAY = JSON.stringify(result[0].DATE_OF_BIRTH);
-                        for (var i = 0; i < BIRTHDAY.length; i++) {
-                            if (i < 5 &&i>0) {
-                                Year += BIRTHDAY[i];
-                            }
-                            if (i > 5 && i < 8) {
-                                Month += BIRTHDAY[i];
-                            }
-                            if (i > 8 && i < 11) {
-                                Day += BIRTHDAY[i]
-                            }
-                            if (i > 10) {
-                                break;
-                            }
-                        }
                         const CUSTOMER_INFO_PACKAGE = {
-                            CUSTOMER_NAME: result[0].FULL_NAME,
-                            CUSTOMER_DAYOFBIRTH: Day,
-                            CUSTOMER_ADDRESS: result[0].ADDRESS,
-                            CUSTOMER_GENDER: result[0].CUSTOMER_GENDER,
-                            CUSTOMER_MONTHOFBIRTH: Month,
-                            CUSTOMER_YEAROFBIRTH: Year,
                             CUSTOMER_ID: result[0].CUSTOMER_ID,
+                            CUSTOMER_OTHER_INFO:PASSWORD_TOKEN,
                         }
                         const PACKAGE_DATA =
                         {
                             CUSTOMER_PACKAGE: CUSTOMER_INFO_PACKAGE,  
                         }
-                        const HASH_PACKAGE = jwt.sign(PACKAGE_DATA, algorithm, { expiresIn: "7d" });
+                        const HASH_PACKAGE = jwt.sign(PACKAGE_DATA, secretKey, { expiresIn: "7d" });
                         res.send({
                             STATUS: true,
                             EXPIRED_TIME: 1000 * 60 * 60 * 24 * 7,
@@ -193,11 +172,23 @@ router.post("/getCustomerName", (req, res) => {
         res.end();
     }
     try {
-        if (jwt.verify(req.body.TOKEN, algorithm)) {
+        if (jwt.verify(req.body.TOKEN, secretKey)) {
             const INFO = jwt.decode(req.body.TOKEN);
-            res.send({
-                CUSTOMER_NAME: INFO.CUSTOMER_PACKAGE.CUSTOMER_NAME,
+            conn.query("select * from CUSTOMER_SECURITY,CUSTOMER_INFO where CUSTOMER_SECURITY.CUSTOMER_ID='"+INFO.CUSTOMER_PACKAGE.CUSTOMER_ID+"' and CUS_PASSWORD='"+INFO.CUSTOMER_PACKAGE.CUSTOMER_OTHER_INFO+"' and CUSTOMER_SECURITY.CUSTOMER_ID=CUSTOMER_INFO.CUSTOMER_ID;",(err,result)=>{
+                if (err) {
+                    res.send({ STATUS: false, MESSAGE: "please delete this token" });
+                    return;
+                }
+                if(!result[0]){
+                    res.send({ STATUS: false, MESSAGE: "please delete this token" });
+                    return;
+                } 
+                res.send({
+                    STATUS:true,
+                    CUSTOMER_NAME: result[0].FULL_NAME,
+                })
             })
+         
         }
     }
     catch (e) {
@@ -209,13 +200,26 @@ router.post("/getCustomerName", (req, res) => {
 // check Session
 router.post("/getStatus", (req, res) => {
     if (!req.body.TOKEN) {
+        
         res.end();
     }
     try {
-        if (jwt.verify(req.body.TOKEN, algorithm)) {
-            console.log("true");
-            res.send({
-                STATUS: true,
+        
+        if (jwt.verify(req.body.TOKEN, secretKey)) { 
+            const INFO=jwt.decode(req.body.TOKEN);
+            conn.query("select * from CUSTOMER_SECURITY where CUSTOMER_ID='" + INFO.CUSTOMER_PACKAGE.CUSTOMER_ID + "' and CUS_PASSWORD='" + INFO.CUSTOMER_PACKAGE.CUSTOMER_OTHER_INFO + "';", (err, result) => {
+                if (err) {
+                    res.send({ STATUS: false, MESSAGE: "please delete this token" });
+                    return;
+                }
+                if(!result[0]){
+                    res.send({ STATUS: false, MESSAGE: "please delete this token" });
+                    return;
+                }
+               
+                res.send({
+                    STATUS: true,
+                })
             })
         }
     }
@@ -232,36 +236,64 @@ router.post("/getCustomerInfo", (req, res) => {
         return;
     }
     try {
-        if (jwt.verify(req.body.TOKEN, algorithm)) {
+        if (jwt.verify(req.body.TOKEN, secretKey)) {
             const INFO = jwt.decode(req.body.TOKEN);
-            const CUSTOMER_INFO_PACKAGE = {
-                CUSTOMER_NAME: INFO.CUSTOMER_PACKAGE.CUSTOMER_NAME,
-                CUSTOMER_DAYOFBIRTH: INFO.CUSTOMER_PACKAGE.CUSTOMER_DAYOFBIRTH,
-                CUSTOMER_ADDRESS: INFO.CUSTOMER_PACKAGE.CUSTOMER_ADDRESS,
-                CUSTOMER_GENDER: INFO.CUSTOMER_PACKAGE.CUSTOMER_GENDER,
-                CUSTOMER_MONTHOFBIRTH: INFO.CUSTOMER_PACKAGE.CUSTOMER_MONTHOFBIRTH,
-                CUSTOMER_YEAROFBIRTH: INFO.CUSTOMER_PACKAGE.CUSTOMER_YEAROFBIRTH,
-                CUSTOMER_ID:INFO.CUSTOMER_PACKAGE.CUSTOMER_ID,
-            }
-            if (ARRAY_APP_ID.includes(req.body.APP_ID)) {
-                conn.query("select CUSTOMER_EMAIL from CUSTOMER_SECURITY where CUSTOMER_ID='" + INFO.CUSTOMER_PACKAGE.CUSTOMER_ID + "';", (err, req) => {
-                    if (err) res.end();
-                    else {
-                        res.send({
-                            PACKAGE: CUSTOMER_INFO_PACKAGE,
-                            CUSTOMER_EMAIL: result[0].CUSTOMER_EMAIL,
-                        })
-                        return;
+            conn.query("select * from CUSTOMER_SECURITY,CUSTOMER_INFO where CUSTOMER_SECURITY.CUSTOMER_ID='" + INFO.CUSTOMER_PACKAGE.CUSTOMER_ID + "' and CUS_PASSWORD='" + INFO.CUSTOMER_PACKAGE.CUSTOMER_OTHER_INFO + "' and CUSTOMER_SECURITY.CUSTOMER_ID=CUSTOMER_INFO.CUSTOMER_ID;", (err, result) => {
+                if (err) {
+                    res.send({ STATUS: false, MESSAGE: "please delete this token" });
+                    return;
+                }
+                if(!result[0]){
+                    res.send({ STATUS: false, MESSAGE: "please delete this token" });
+                    return;
+                }
+                var Year = "", Month = "", Day = "";
+                const BIRTHDAY = JSON.stringify(result[0].DATE_OF_BIRTH);
+                for (var i = 0; i < BIRTHDAY.length; i++) {
+                    if (i < 5 && i > 0) {
+                        Year += BIRTHDAY[i];
                     }
-                })
-            }
-            else {
-                res.send({
-                    PACKAGE: CUSTOMER_INFO_PACKAGE,
-                    CUSTOMER_ID:INFO.CUSTOMER_PACKAGE.CUSTOMER_ID
-                })
-                return;
-            }
+                    if (i > 5 && i < 8) {
+                        Month += BIRTHDAY[i];
+                    }
+                    if (i > 8 && i < 11) {
+                        Day += BIRTHDAY[i]
+                    }
+                    if (i > 10) {
+                        break;
+                    }
+                }
+                const CUSTOMER_INFO_PACKAGE = { 
+                    CUSTOMER_ID: INFO.CUSTOMER_PACKAGE.CUSTOMER_ID,
+                    CUSTOMER_NAME: result[0].FULL_NAME,
+                    CUSTOMER_DAYOFBIRTH: Day,
+                    CUSTOMER_ADDRESS: result[0].ADDRESS,
+                    CUSTOMER_GENDER: result[0].GENDER,
+                    CUSTOMER_MONTHOFBIRTH: Month,
+                    CUSTOMER_YEAROFBIRTH: Year,
+                    CUSTOMER_OTHER_INFO: INFO.CUSTOMER_PACKAGE.CUSTOMER_OTHER_INFO,
+                }
+                if (ARRAY_APP_ID.includes(req.body.APP_ID)) {
+                    conn.query("select CUSTOMER_EMAIL from CUSTOMER_SECURITY where CUSTOMER_ID='" + INFO.CUSTOMER_PACKAGE.CUSTOMER_ID + "';", (err, req) => {
+                        if (err) res.end();
+                        else {
+                            res.send({
+                                PACKAGE: CUSTOMER_INFO_PACKAGE,
+                                CUSTOMER_EMAIL: result[0].CUSTOMER_EMAIL,
+                                STATUS:true,
+                            })
+                            return;
+                        }
+                    })
+                }
+                else {
+                    res.send({
+                        PACKAGE: CUSTOMER_INFO_PACKAGE,
+                        STATUS:true,
+                    })
+                    return;
+                }
+            })
         }
     }
     catch (e) {
@@ -274,77 +306,110 @@ router.post("/getCustomerInfo", (req, res) => {
 })
 /// Change Password
 router.post("/changePassword",(req,res)=>{
-    if(req.body.OLD_PASSWORD)
-    {
-        try{
-            if(jwt.verify(req.body.TOKEN,algorithm))
-            {
-                const DATA=jwt.decode(req.body.TOKEN); 
-               
-                conn.query("select CUS_PASSWORD from CUSTOMER_SECURITY where CUSTOMER_ID='"+DATA.CUSTOMER_PACKAGE[0].CUSTOMER_ID+"';",(err,result)=>{
-                    if(err){
-                        res.end();
-                        return;
-                    }
-                    if(result[0].CUS_PASSWORD===req.body.OLD_PASSWORD){
-                        res.send({STATUS:true});
-                        return;
-                    }
-                })
+    if (req.body.OLD_PASSWORD) {
+        try {
+            if (jwt.verify(req.body.TOKEN, secretKey)) {
+                const DATA = jwt.decode(req.body.TOKEN);
+                if (DATA.CUSTOMER_PACKAGE.CUSTOMER_OTHER_INFO===crypto.createHash(algorithm).update(req.body.OLD_PASSWORD).digest("hex")){
+                    res.send({
+                        STATUS:true,
+                    })
+                    return;
+                }
+                res.send({STATUS:false})
+                return;
             }
         }
-        catch{
+        catch {
             res.end();
             return;
         }
     }
-    if(req.body.NEW_PASSWORD){
-        try{
-            if(jwt.verify(req.body.TOKEN,algorithm))
-            {
-                const DATA=jwt.decode(req.body.TOKEN);
-                conn.query("UPDATE CUSTOMER_SECURITY SET CUS_PASSWORD='"+req.body.NEW_PASSWORD+"' WHERE CUSTOMER_ID='"+DATA.CUSTOMER_PACKAGE.CUSTOMER_ID+"';",(err,result)=>{
-                    if(err){
+    if (req.body.NEW_PASSWORD) {
+        try {
+            if (jwt.verify(req.body.TOKEN, secretKey)) {
+                const INFO = jwt.decode(req.body.TOKEN);
+                const PASSWORD_TOKEN = crypto.createHash(algorithm).update(req.body.NEW_PASSWORD).digest("hex");
+                conn.query("UPDATE CUSTOMER_SECURITY SET CUS_PASSWORD='" + PASSWORD_TOKEN + "' WHERE CUSTOMER_ID='" + INFO.CUSTOMER_PACKAGE.CUSTOMER_ID + "' and CUS_PASSWORD='"+INFO.CUSTOMER_PACKAGE.PASSWORD_TOKEN+"';", (err, result) => {
+                    console.log("test");
+                    if (err) {
                         res.end();
                         return;
                     }
-                    if(result[0]===req.body.OLD_PASSWORD){
-                        res.send({STATUS:true});
-                        return;
+                    console.log(result);
+                    const CUSTOMER_INFO_PACKAGE = {
+                        CUSTOMER_NAME: INFO.CUSTOMER_PACKAGE.CUSTOMER_NAME,
+                        CUSTOMER_DAYOFBIRTH: INFO.CUSTOMER_PACKAGE.CUSTOMER_DAYOFBIRTH,
+                        CUSTOMER_ADDRESS: INFO.CUSTOMER_PACKAGE.CUSTOMER_ADDRESS,
+                        CUSTOMER_GENDER: INFO.CUSTOMER_PACKAGE.CUSTOMER_GENDER,
+                        CUSTOMER_MONTHOFBIRTH: INFO.CUSTOMER_PACKAGE.CUSTOMER_MONTHOFBIRTH,
+                        CUSTOMER_YEAROFBIRTH: INFO.CUSTOMER_PACKAGE.CUSTOMER_YEAROFBIRTH,
+                        CUSTOMER_ID: INFO.CUSTOMER_PACKAGE.CUSTOMER_ID,
+                        CUSTOMER_OTHER_INFO: PASSWORD_TOKEN,
                     }
+                    const PACKAGE_DATA =
+                    {
+                        CUSTOMER_PACKAGE: CUSTOMER_INFO_PACKAGE,
+                    }
+                    const HASH_PACKAGE = jwt.sign(PACKAGE_DATA, secretKey, { expiresIn: "7d" });
+                    res.send({
+                        STATUS: true,
+                        PACKAGE: HASH_PACKAGE,
+                        EXPIRED_TIME: 1000 * 60 * 60 * 24 * 7,
+                    });
+                    return;
                 })
             }
         }
-        catch{
+        catch {
             res.end();
             return;
         }
     }
 })
 /// Get Point
-router.post("/postPointAvailable",(req,res)=>{  
-    if(!req.body.TOKEN){
+router.post("/postPointAvailable", (req, res) => {  
+    if (!req.body.TOKEN) {
         res.end();
         return;
     }
-    try{
-        
-        if(!jwt.verify(req.body.TOKEN,algorithm)){
+    try {
+      
+        if (!jwt.verify(req.body.TOKEN, secretKey)) {
 
         }
-        const DATA=jwt.decode(req.body.TOKEN);
-        conn.query("select POINT_AVAILABLE from CUSTOMER_INFO where CUSTOMER_ID='"+DATA.CUSTOMER_PACKAGE.CUSTOMER_ID+"';",(err,result)=>{
-            if(err){
+        const DATA = jwt.decode(req.body.TOKEN);
+        conn.query("select POINT_AVAILABLE from CUSTOMER_INFO where CUSTOMER_ID='" + DATA.CUSTOMER_PACKAGE.CUSTOMER_ID + "';", (err, result) => {
+            if (err) {
                 res.end();
                 return;
             }
-            res.send({
-                POINT_AVAILABLE:result[0].POINT_AVAILABLE,
-            })
+            conn.query("select CUS_PASSWORD from CUSTOMER_SECURITY where CUSTOMER_ID='" + DATA.CUSTOMER_PACKAGE.CUSTOMER_ID + "' and CUS_PASSWORD='" + DATA.CUSTOMER_PACKAGE.CUSTOMER_OTHER_INFO + "';", (err, result1) => {
+                if (err) {
+                    res.end();
+                    return;
+                }
+                try {
+                    if (!result1[0].CUS_PASSWORD) {
+                        res.end();
+                        return;
+                    } 
+                    res.send({
+                        POINT_AVAILABLE: result[0].POINT_AVAILABLE,
+                        STATUS: true,
+                    })
+                    return;
+                }
+                catch (e) {
+                    res.end();
+                    return;
+                }
+            });
+          
             return;
         })
     }
-    catch{
+    catch {
         res.end();
         return;
     }
@@ -352,14 +417,20 @@ router.post("/postPointAvailable",(req,res)=>{
 /// Update Info
 router.post("/updateInfo", (req, res) => {
     if(!req.body.TOKEN){
+      
         res.end();
         return;
     }
-    try{
-        if(!jwt.verify(req.body.TOKEN,algorithm)){
-            const DATA = jwt.decode(req.body.TOKEN);
-            conn.query("UPDATE CUSTOMER_INFO SET FULL_NAME='" + req.body.CUSTOMER_NAME + "',GENDER='" + req.body.CUSTOMER_GENDER + "',DATE_OF_BIRTH='" + req.body.CUSTOMER_BIRTHDAY + "',ADDRESS='" + req.body.CUSTOMER_ADDRESS + "' where CUSTOMER_ID='" + DATA.CUSTOMER_PACKAGE.CUSTOMER_ID + "';", (err, result) => {
+    try{ 
+        if(jwt.verify(req.body.TOKEN,secretKey)){
+            const DATA = jwt.decode(req.body.TOKEN); 
+            conn.query("UPDATE CUSTOMER_INFO SET FULL_NAME='" + req.body.CUSTOMER_NAME + 
+            "',GENDER='" + req.body.CUSTOMER_GENDER +
+             "',DATE_OF_BIRTH='" + req.body.CUSTOMER_BIRTHDAY + 
+             "',ADDRESS='" + req.body.CUSTOMER_ADDRESS + 
+             "' where CUSTOMER_ID='" + DATA.CUSTOMER_PACKAGE.CUSTOMER_ID + "';", (err, result) => {
                 if (err) {
+                    console.log("this can't run")
                     res.end();
                     return;
                 }
@@ -387,12 +458,14 @@ router.post("/updateInfo", (req, res) => {
                     CUSTOMER_MONTHOFBIRTH: Month,
                     CUSTOMER_YEAROFBIRTH: Year,
                     CUSTOMER_ID: DATA.CUSTOMER_PACKAGE.CUSTOMER_ID,
+                    CUSTOMER_OTHER_INFO: DATA.CUSTOMER_PACKAGE.CUSTOMER_OTHER_INFO,
                 }
                 const PACKAGE_DATA =
                 {
                     CUSTOMER_PACKAGE: CUSTOMER_INFO_PACKAGE,
                 }
                 const HASH_PACKAGE = jwt.sign(PACKAGE_DATA, algorithm, { expiresIn: "7d" });
+                console.log("end");
                 res.send({
                     STATUS: true,
                     EXPIRED_TIME: 1000 * 60 * 60 * 24 * 7,
@@ -402,7 +475,8 @@ router.post("/updateInfo", (req, res) => {
             })
         }
     }
-    catch{
+    catch{  
+        
         res.end();
         return;
     }
@@ -492,21 +566,227 @@ router.post("/updateInfo", (req, res) => {
 //         }
 //       });
 // })
-router.post("/getHistoryPoint",(req,res)=>{
-    if(!req.body.TOKEN){
+
+//get history point
+router.post("/getHistoryPoint",getHistoryPoint,async (req,res,next)=>{
+    const HISTORY_POINT = req.resultHistoryPoint;
+    if (req.PASSWORD_STATUS) {
+        res.send({
+            PACKAGE: HISTORY_POINT,
+        })
+    }
+})
+//insert point
+router.post("/insertProcessPoint",insertProcessPoint,(req,res)=>{
+    res.send({MESSAGE:"success",STATUS:"true"});
+    return;
+})
+// refund Process Point
+router.post("/refundProcessPoint",refundProcessPoint,async(req,res,next)=>{
+    res.send({MESSAGE:"success",STATUS:"true"});
+    return;
+})
+// get Process Point
+router.post("/getProcessPoint",getProcessPoint,(req,res,next)=>{
+    res.send({RESULT:req.Result});
+    return;
+})
+//// FUNCTION MIDDLE WARE
+// get Process Point
+async function getProcessPoint(req,res,next){
+    if (!req.body.TOKEN) {
         res.end();
         return;
     }
     try{
-        if(jwt.verify(req.body.TOKEN,algorithm)){
-            const DATA = jwt.decode(req.body.TOKEN);
-            
+        if(jwt.verify(req.body.TOKEN,secretKey)){
+
         }
-        
     }
-    catch{
+    catch(e){
         res.end();
-        return;    
+        return
     }
-})
+    const DATA = jwt.decode(req.body.TOKEN);
+    conn.query("select CUS_PASSWORD from CUSTOMER_SECURITY where CUSTOMER_ID='" + DATA.CUSTOMER_PACKAGE.CUSTOMER_ID + "' and CUS_PASSWORD='" + DATA.CUSTOMER_PACKAGE.CUSTOMER_OTHER_INFO + "';", (err, result) => {
+        if (err) {
+            res.end();
+            return;
+        }
+        try {
+            if (!result[0].CUS_PASSWORD) {
+                res.end();
+                return;
+            }
+            req.PASSWORD_STATUS = true;
+        }
+        catch (e) {
+            res.end();
+            return;
+        }
+    });
+    conn.query("select * from PROCESS_POINT where CUSTOMER_ID='"+DATA.CUSTOMER_PACKAGE.CUSTOMER_ID+"' and STATUS=false)",async function(err,result){
+        if(err){    
+           
+            res.end()
+            return;
+        }
+        req.Result=await result; 
+        next();
+    });
+   
+}
+// Refund Process Point
+async function refundProcessPoint(req,res,next){
+    if (!req.body.TOKEN) {
+        res.end();
+        return;
+    }
+    try{
+        if(jwt.verify(req.body.TOKEN,secretKey)){
+
+        }
+    }
+    catch(e){
+        res.end();
+        return
+    }
+    const DATA = jwt.decode(req.body.TOKEN);
+    conn.query("select CUS_PASSWORD from CUSTOMER_SECURITY where CUSTOMER_ID='" + DATA.CUSTOMER_PACKAGE.CUSTOMER_ID + "' and CUS_PASSWORD='" + DATA.CUSTOMER_PACKAGE.CUSTOMER_OTHER_INFO + "';", (err, result) => {
+
+        if (err) {
+            res.end();
+            return;
+        }
+        try {
+            if (!result[0].CUS_PASSWORD) {
+                res.end();
+                return;
+            }
+            req.PASSWORD_STATUS = true;
+        }
+        catch (e) {
+            res.end();
+            return;
+        }
+    })
+    conn.query("update PROCESS_POINT set  STATUS_REFUND=true where SPECIAL_APP_ID='"+req.body.SPECIAL_APP_ID+"'and STATE=false and CUSTOMER_ID='"+ DATA.CUSTOMER_PACKAGE.CUSTOMER_ID+"' and APP_ID='"+req.body.APP+"');",(err,result)=>{
+        if(err){
+            res.end();
+            return;
+        }   
+        next();
+    })
+ 
+}
+//Insert Process Point
+async function insertProcessPoint(req,res,next){
+    if (!req.body.TOKEN) {
+        res.end();
+        return;
+    }
+    try{
+        if(jwt.verify(req.body.TOKEN,secretKey)){
+
+        }
+    }
+    catch(e){
+        res.end();
+        return
+    }
+  
+    const DATA = jwt.decode(req.body.TOKEN);
+    conn.query("select CUS_PASSWORD from CUSTOMER_SECURITY where CUSTOMER_ID='" + DATA.CUSTOMER_PACKAGE.CUSTOMER_ID + "' and CUS_PASSWORD='" + DATA.CUSTOMER_PACKAGE.CUSTOMER_OTHER_INFO + "';", (err, result) => {
+    console.log("test this");
+        if (err) {
+            res.end();
+            return;
+        }
+        try {
+            if (!result[0].CUS_PASSWORD) {
+                res.end();
+                return;
+            }
+            req.PASSWORD_STATUS = true;
+        }
+        catch (e) {
+            res.end();
+            return;
+        }
+    });
+    if(!req.body.END_DATE){
+        res.end();
+        return;
+    }
+    if(!req,body.SPECIAL_APP_ID){
+        res.end();
+        return;
+    }
+    conn.query("select COUNT(*) as total from PROCESS_POINT",(err,result)=>{
+        if(err){
+            res.end();
+            return;
+        }
+        req.NUMBER=result[0].total;
+    })
+    const NEW_PROCESS_ID="PROP"+req.NUMBER+1;
+    conn.query("insert into PROCESS_POINT(PROCESS_ID,CUSTOMER_ID,APP_ID,STATE,STATUS_REFUND,POINT_VALUE,END_DATE,SPECIAL_APP_ID) values ('"+NEW_PROCESS_ID+"','"+DATA.CUSTOMER_PACKAGE.CUSTOMER_ID+"','"+req.body.APP+"',false,false,'"+req.body.END_DATE+"','"+req.body.SPECIAL_APP_ID+"');",(err,result)=>{
+        if(err){
+            console.log(err);
+            res.end();
+            return;
+        }
+        next();
+    })
+}
+//Get History Point - Middle Ware
+async function getHistoryPoint(req, res, next) {
+    if (!req.body.TOKEN) {
+        res.end();
+        return;
+    }
+    try{
+        if(jwt.verify(req.body.TOKEN,secretKey)){
+
+        }
+    }
+    catch(e){
+        res.end();
+        return
+    }  
+    const DATA = jwt.decode(req.body.TOKEN);
+    req.TOKEN=DATA;
+    conn.query("select CUS_PASSWORD from CUSTOMER_SECURITY where CUSTOMER_ID='" + DATA.CUSTOMER_PACKAGE.CUSTOMER_ID + "' and CUS_PASSWORD='" + DATA.CUSTOMER_PACKAGE.CUSTOMER_OTHER_INFO + "';", (err, result) => {
+
+        if (err) {
+            res.end();
+            return;
+        }
+        console.log("second one");
+        try {
+            if (!result[0].CUS_PASSWORD) {
+                res.end();
+                return;
+            }
+            req.PASSWORD_STATUS = true;
+           
+        }
+        catch (e) {
+            res.end();
+            return;
+        }
+    });
+   
+    conn.query("select * from HISTORY_POINT where CUSTOMER_ID='" + DATA.CUSTOMER_PACKAGE.CUSTOMER_ID + "';", async function (err, result) {
+        if (err) {
+            res.end();
+            return;
+        }
+        console.log("this one")
+        req.resultHistoryPoint = result; 
+        next();
+    });
+   
+}
+
 module.exports = router;
