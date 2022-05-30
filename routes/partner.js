@@ -144,9 +144,8 @@ route.post("/Login", ((req, res) => {
                     }
                 }
                 else{
-                  
                     if (!ARRAY_APP_INCLUDE.includes(req.body.APP)&& req.body.APP) {
-                        res.send({ ERROR: "Tài khoản không đăng ký service này" });
+                        res.send({ ERROR: "Tài khoản không đăng ký service này",STATUS:false });
                         return;
                     }
                     else {

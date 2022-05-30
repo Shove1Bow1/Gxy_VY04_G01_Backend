@@ -70,21 +70,25 @@ router.get("/getBaremExchangePoint",(req,res)=>{
   }
  
 })
-router.post("/getServiceManager/:id",(req,res,next)=>{
-  if(!req.params.id){
+router.post("/updateServiceManager",(req,res,next)=>{
+  if(!req.body.APP_ID){
     res.end();
   }
   else{
+      const MIN_PRICE=Number(req.body.MIN_PRICE);
+      const MAX_PRICE=Number(req.body.MAX_PRICE);
+      const POINT_EXACHANGE_RANGE=Number(req.body.POINT_EXACHANGE_RANGE);
       con.query("Update SERVICE_PROVIDER set MIN_PRICE=" + parseInt(req.body.MIN_PRICE) +
       ", MAX_PRICE=" + parseInt(req.body.MAX_PRICE) +
       ", POINT_EXCHANGE_RANGE =" + parseInt(req.body.POINT_EXCHANGE_RANGE) +
       " WHERE APP_ID='" + req.path.id + "';",
       function (err, result, filesd) {
           if (err) throw err;
-          console.log("update")
-          res.send([{
-
-          }])
+          res.send({
+            MESSAGE:"Cập nhật thành công",
+            STATUS:true
+          })
+          return;
       });
   }
 

@@ -481,91 +481,6 @@ router.post("/updateInfo", (req, res) => {
         return;
     }
 })
-// insert Transication
-// router.post("/insertTransication",(req,res)=>{
-//     if(!req.body.APP_ID){
-//         res.end();
-//         return;
-//     }
-//     if(!ARRAY_APP_ID.includes(req.body.APP_ID))
-//     {
-//         res.end();
-//         return;
-//     }
-//     if(!req.body.TRANSICATION_VALUE){
-//         res.end();
-//         return;
-//     }
-//     if(req.body.TYPE_ID){
-//         conn.query("select * from TYPE_TRANSICATION where TYPE_ID='"+req.body.TYPE_ID+"';",(err,req)=>{
-//             if(err){
-//                 res.end();
-//                 return;
-//             }
-//             if(!result[0]){
-//                 res.end();
-//                 return;
-//             }
-//         })
-//     }
-//     else{
-//         res.end();
-//         return;
-//     }
-//     if(req.body.TOKEN){
-//         try {
-//             if (jwt.verify(req.body.TOKEN, algorithm)) {
-//                 const DATA=jwt.decode(req.body.TOKEN);
-//                 conn.query("select COUNT(*) from CUSTOMER_HISTORY_TRANSICATION",(err,result)=>{
-//                     if(err) {
-//                         res.end();
-//                         return;
-//                     }
-//                     var ID=result[0].COUNT+1;   
-//                     conn.query("insert into CUSTOMER_HISTORY_TRANSICATION(TRANSICATION_ID,TYPE_ID,CUSTOMER_ID,DATE_PAID,APP_ID,TRANSACTION_VALUE_) values ('"+ID+"','"+req.body.TYPE_ID+"',"+DATA.CUSTOMER_PACKAGE.CUSTOMER_ID+"',"+req.body.DATE_PAID+"','"+req.body.APP_ID+"','"+req.body.TRANSICATION_VALUE+"');",(err,result2)=>{
-//                         if(err){
-//                             res.end();
-//                             return;
-//                         }
-//                     })
-//                 })        
-//             }
-//         }
-//         catch (e) {
-//             res.end();
-//             return;
-//         }
-//     }
-//     if(req.body.CUSTOMER_ID){
-//     }
-// })
-// pass user info
-// router.post("/sendEmail",(req,res)=>{
-//     var transporter = nodemailer.createTransport({
-//         service: "gmail",
-//         port: 465,
-//         auth: {
-//           user: "spacingsize@gmail.com",
-//           pass: "slowly123",
-//         },
-//         tls: {
-//           rejectUnauthorized: false,
-//         },
-//       });
-//       var mailOptions = {
-//         from: "goldenaxel123@gmail.com",
-//         to: req.body.CUSTOMER_EMAIL,
-//         subject: "Sending Email using Node.js",
-//         text: "Welcome to Traveloka clone!",
-//       };
-//       transporter.sendMail(mailOptions, function (error, info) {
-//         if (error) {
-//           console.log(error);
-//         } else {
-//           console.log("Email sent: " + info.response);
-//         }
-//       });
-// })
 
 //get history point
 router.post("/getHistoryPoint",getHistoryPoint,async (req,res,next)=>{
@@ -577,7 +492,7 @@ router.post("/getHistoryPoint",getHistoryPoint,async (req,res,next)=>{
     }
 })
 //insert point
-router.post("/insertProcessPoint",insertProcessPoint,(req,res)=>{
+router.post("/insertTransicationAndPP",insertTransicationAndPP,(req,res)=>{
     res.send({MESSAGE:"success",STATUS:"true"});
     return;
 })
@@ -680,24 +595,23 @@ async function refundProcessPoint(req,res,next){
  
 }
 //Insert Process Point
-async function insertProcessPoint(req,res,next){
+async function insertTransicationAndPP(req, res, next) {
     if (!req.body.TOKEN) {
         res.end();
         return;
     }
-    try{
-        if(jwt.verify(req.body.TOKEN,secretKey)){
+    try {
+        if (jwt.verify(req.body.TOKEN, secretKey)) {
 
         }
     }
-    catch(e){
+    catch (e) {
         res.end();
         return
     }
-  
     const DATA = jwt.decode(req.body.TOKEN);
     conn.query("select CUS_PASSWORD from CUSTOMER_SECURITY where CUSTOMER_ID='" + DATA.CUSTOMER_PACKAGE.CUSTOMER_ID + "' and CUS_PASSWORD='" + DATA.CUSTOMER_PACKAGE.CUSTOMER_OTHER_INFO + "';", (err, result) => {
-    console.log("test this");
+        console.log("test this");
         if (err) {
             res.end();
             return;
@@ -707,32 +621,65 @@ async function insertProcessPoint(req,res,next){
                 res.end();
                 return;
             }
-            req.PASSWORD_STATUS = true;
         }
         catch (e) {
             res.end();
             return;
         }
     });
-    if(!req.body.END_DATE){
+    if (!req.body.END_DATE) {
         res.end();
         return;
     }
-    if(!req,body.SPECIAL_APP_ID){
+    if (!req, body.APP_ID) {
         res.end();
         return;
     }
-    conn.query("select COUNT(*) as total from PROCESS_POINT",(err,result)=>{
+    if (!req.body.TRANSACTION_VALUE) {
+        res.send({
+            MESSAGE: "Chưa có số tiền thanh toán",
+            STATUS: false,
+        });
+        return;
+    }
+    if (!req.body.DATE_TRANSACTION) {
+        res.send({
+            MESSAGE: "chưa có ngày thanh toán",
+            STATUS: false,
+        })
+        return;
+    }
+    conn.query("select COUNT(*) as total from HISTORY_TRANSACTION", (err, result) => {
+        if (err) {
+            res.end();
+            return;
+        }
+        req.NUMBER = result[0].total;
+    })
+    const NEW_PROCESS_ID = "HT" + req.NUMBER + 1;
+    conn.query("select PAR_PER_ID from PARTNER_SERVICE where APP_ID='" + req.body.APP_ID + "' and PARTNER_ID='" + req.body.PARTNER_ID + "');", (err, result) => {
+        if (err) {
+            res.end();
+            return;
+        }
+        req.PAR_SER = result[0].PAR_SER_ID;
+    })
+    conn.query("insert into HISTORY_TRANSACTION(TRANACTION_ID,PAR_SER_ID,CUSTOMER_ID,TYPE_TRANSACTION,DATE_TRANSACTION,TRANSACTION_VALUE) values ('" + req.NUMBER + "','" + req.PAR_SER + "','" + DATA.CUSTOMER_PACKAGE.CUSTOMER_ID + "',false,'" + req.body.DATE_TRANSACTION + "','" + req.body.TRANSACTION_VALUE + "')", (err, result) => {
+        if (err) {
+            res.end();
+            return;
+        }
+    })
+    conn.query("select * from SERVICE_PROVIDER where APP_ID='"+req.body.APP_ID+"');",(err,result)=>{
         if(err){
             res.end();
             return;
         }
-        req.NUMBER=result[0].total;
+        req.POINT_EXCHANGE=result[0].POINT_EXACHANGE_RANGE;
     })
-    const NEW_PROCESS_ID="PROP"+req.NUMBER+1;
-    conn.query("insert into PROCESS_POINT(PROCESS_ID,CUSTOMER_ID,APP_ID,STATE,STATUS_REFUND,POINT_VALUE,END_DATE,SPECIAL_APP_ID) values ('"+NEW_PROCESS_ID+"','"+DATA.CUSTOMER_PACKAGE.CUSTOMER_ID+"','"+req.body.APP+"',false,false,'"+req.body.END_DATE+"','"+req.body.SPECIAL_APP_ID+"');",(err,result)=>{
+    const POINT_INSERT=req.body.TRANSACTION_VALUE/req.POINT_EXCHANGE;
+    conn.query("insert into PROCESS_POINT(TRANSACTION_ID,POINT_VALUE,END_DATE) values ('"+req.PAR_SER+"','"+POINT_INSERT+"','"+req.body.END_DATE+"');",(err,result)=>{
         if(err){
-            console.log(err);
             res.end();
             return;
         }
