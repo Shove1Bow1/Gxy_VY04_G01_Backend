@@ -17,6 +17,7 @@ const { decode } = require('punycode');
 const conn = require('../mysql');
 const { nextTick } = require('process');
 const { addAbortSignal } = require('stream');
+const { resolveSoa } = require('dns');
 var ARRAY_APP_ID = ["PROFILE", "FLIGHT", "HOTEL", "AIRPORT", "APART", "XPERIENCE", "CARRENTAL", "EATS", "VOUCHER", "COMBO"];
 let algorithm = "sha256";
 let secretKey ="CoTu"
@@ -493,16 +494,21 @@ router.post("/getHistoryPoint",getHistoryPoint,async (req,res,next)=>{
 })
 //insert point
 router.post("/insertTransicationAndPP",insertTransicationAndPP,(req,res)=>{
-    res.send({MESSAGE:"success",STATUS:"true"});
+    res.send({MESSAGE:"success",STATUS:"true",HISTORY_TRANSACTION_ID:req.NUMBER_ID});
     return;
 })
 // refund Process Point
-router.post("/refundProcessPoint",refundProcessPoint,async(req,res,next)=>{
-    res.send({MESSAGE:"success",STATUS:"true"});
+router.post("/refundTransicationAndPP",refundTransicationAndPP,async(req,res,next)=>{
+    res.send({MESSAGE:"success",STATUS:"true",HISTORY_REFUND_TRANSACTION_ID:req.NUMBER_ID});
+    return;
+})
+// get History Transaction
+router.post("/getHistoryTransaction",getHistoryTransaction,(req,res)=>{
+    res.send({RESULT:req.Result_Transaction});
     return;
 })
 // get Process Point
-router.post("/getProcessPoint",getProcessPoint,(req,res,next)=>{
+router.post("/getProcessPoint",getProcessPoint,(req,res)=>{
     res.send({RESULT:req.Result});
     return;
 })
@@ -534,41 +540,40 @@ async function getProcessPoint(req,res,next){
                 return;
             }
             req.PASSWORD_STATUS = true;
+            console.log("run1");
         }
         catch (e) {
             res.end();
             return;
         }
     });
-    conn.query("select * from PROCESS_POINT where CUSTOMER_ID='"+DATA.CUSTOMER_PACKAGE.CUSTOMER_ID+"' and STATUS=false)",async function(err,result){
-        if(err){    
-           
-            res.end()
+    conn.query("select * from HISTORY_TRANSACTION as HH, PROCESS_POINT as PP where CUSTOMER_ID='"+DATA.CUSTOMER_PACKAGE.CUSTOMER_ID+"' and PP.REFUND_STATE=false and PP.TRANSACTION_ID=HH.TRANSACTION_ID and PP.END_DATE<CURDATE();",(err,result)=>{
+        if(err){
+            res.end();
             return;
         }
-        req.Result=await result; 
+        req.Result_Transaction=result;
+        console.log(req.Result_Transaction);
         next();
-    });
-   
+    })
 }
 // Refund Process Point
-async function refundProcessPoint(req,res,next){
+async function refundTransicationAndPP(req,res,next){
     if (!req.body.TOKEN) {
         res.end();
         return;
     }
-    try{
-        if(jwt.verify(req.body.TOKEN,secretKey)){
+    try {
+        if (jwt.verify(req.body.TOKEN,secretKey)) {
 
         }
     }
-    catch(e){
+    catch (e) {
         res.end();
         return
     }
     const DATA = jwt.decode(req.body.TOKEN);
     conn.query("select CUS_PASSWORD from CUSTOMER_SECURITY where CUSTOMER_ID='" + DATA.CUSTOMER_PACKAGE.CUSTOMER_ID + "' and CUS_PASSWORD='" + DATA.CUSTOMER_PACKAGE.CUSTOMER_OTHER_INFO + "';", (err, result) => {
-
         if (err) {
             res.end();
             return;
@@ -578,21 +583,66 @@ async function refundProcessPoint(req,res,next){
                 res.end();
                 return;
             }
-            req.PASSWORD_STATUS = true;
         }
         catch (e) {
             res.end();
             return;
         }
-    })
-    conn.query("update PROCESS_POINT set  STATUS_REFUND=true where SPECIAL_APP_ID='"+req.body.SPECIAL_APP_ID+"'and STATE=false and CUSTOMER_ID='"+ DATA.CUSTOMER_PACKAGE.CUSTOMER_ID+"' and APP_ID='"+req.body.APP+"');",(err,result)=>{
+    });
+    if(!req.body.HISTORY_TRANSACTION_ID){
+        res.end();
+        return;
+    }
+    if(!req.body.DATE_TRANSACTION){
+        res.end();
+        return;
+    }
+    conn.query("select END_DATE from PROCESS_POINT where DATE(END_DATE)>'"+req.body.DATE_TRANSACTION+"'",(err,result)=>{
         if(err){
             res.end();
             return;
-        }   
+        }
+        if(!result[0]){
+            res.send({
+               MESSAGE:"Không thể hoàn trả dịch vụ",
+               STATUS:false, 
+            })
+        }
+    })
+    conn.query("select COUNT(*) as total from HISTORY_TRANSACTION", (err, result) => {
+        if (err) {
+            res.end();
+            return;
+        }
+        req.NUMBER_ID ="HT"+ result[0].total+1;
+    })
+    conn.query("select PAR_PER_ID from PARTNER_SERVICE where APP_ID='" + req.body.APP_ID + "' and PARTNER_ID='" + req.body.PARTNER_ID + "');", (err, result) => {
+        if (err) {
+            res.end();
+            return;
+        }
+        req.PAR_SER = result[0].PAR_SER_ID;
+    })
+    conn.query("select TRANSACTION_VALUE from HISTORY_TRANSACTION where TRANSACTION_ID='"+req.body.HISTORY_TRANSACTION_ID+"')",(err,result)=>{
+        if(err){
+            res.end();
+            return;
+        }
+        req.TRANSACTION_VALUE=result[0].TRANSACTION_VALUE;
+    })
+    conn.query("insert into HISTORY_TRANSACTION(TRANACTION_ID,PAR_SER_ID,CUSTOMER_ID,TYPE_TRANSACTION,DATE_TRANSACTION,TRANSACTION_VALUE,REFUND_TRANSACTION) values ('" + req.NUMBER_ID + "','" + req.PAR_SER + "','" + DATA.CUSTOMER_PACKAGE.CUSTOMER_ID + "',true,'" + req.body.DATE_TRANSACTION + "','" + req.TRANSACTION_VALUE + "','"+req.body.HISTORY_TRANSACTION_ID+"');", (err, result) => {
+        if (err) {
+            res.end();
+            return;
+        }
+    })
+    conn.query("update PROCESS_POINT set REFUND_STATE=true where TRANSACTION_ID='"+req.body.HISTORY_TRANSACTION_ID+"';",(err,result)=>{
+        if(err){
+            res.end();
+            return;
+        }
         next();
     })
- 
 }
 //Insert Process Point
 async function insertTransicationAndPP(req, res, next) {
@@ -654,7 +704,7 @@ async function insertTransicationAndPP(req, res, next) {
             res.end();
             return;
         }
-        req.NUMBER = result[0].total;
+        req.NUMBER_ID ="HT"+ result[0].total+1;
     })
     const NEW_PROCESS_ID = "HT" + req.NUMBER + 1;
     conn.query("select PAR_PER_ID from PARTNER_SERVICE where APP_ID='" + req.body.APP_ID + "' and PARTNER_ID='" + req.body.PARTNER_ID + "');", (err, result) => {
@@ -664,7 +714,7 @@ async function insertTransicationAndPP(req, res, next) {
         }
         req.PAR_SER = result[0].PAR_SER_ID;
     })
-    conn.query("insert into HISTORY_TRANSACTION(TRANACTION_ID,PAR_SER_ID,CUSTOMER_ID,TYPE_TRANSACTION,DATE_TRANSACTION,TRANSACTION_VALUE) values ('" + req.NUMBER + "','" + req.PAR_SER + "','" + DATA.CUSTOMER_PACKAGE.CUSTOMER_ID + "',false,'" + req.body.DATE_TRANSACTION + "','" + req.body.TRANSACTION_VALUE + "')", (err, result) => {
+    conn.query("insert into HISTORY_TRANSACTION(TRANACTION_ID,PAR_SER_ID,CUSTOMER_ID,TYPE_TRANSACTION,DATE_TRANSACTION,TRANSACTION_VALUE,INFO_TRANSACTION) values ('" + req.NUMBER_ID + "','" + req.PAR_SER + "','" + DATA.CUSTOMER_PACKAGE.CUSTOMER_ID + "',false,'" + req.body.DATE_TRANSACTION + "','" + req.body.TRANSACTION_VALUE + "','"+req.body.INFO_TRANSACTION+"')", (err, result) => {
         if (err) {
             res.end();
             return;
@@ -677,7 +727,7 @@ async function insertTransicationAndPP(req, res, next) {
         }
         req.POINT_EXCHANGE=result[0].POINT_EXACHANGE_RANGE;
     })
-    const POINT_INSERT=req.body.TRANSACTION_VALUE/req.POINT_EXCHANGE;
+    const POINT_INSERT=parseInt(req.body.TRANSACTION_VALUE)/parseInt(req.POINT_EXCHANGE);
     conn.query("insert into PROCESS_POINT(TRANSACTION_ID,POINT_VALUE,END_DATE) values ('"+req.PAR_SER+"','"+POINT_INSERT+"','"+req.body.END_DATE+"');",(err,result)=>{
         if(err){
             res.end();
@@ -735,5 +785,48 @@ async function getHistoryPoint(req, res, next) {
     });
    
 }
+//Get History Transaction - Middle ware
+async function getHistoryTransaction(req,res,next){
+    if (!req.body.TOKEN) {
+        res.end();
+        return;
+    }
+    try{
+        if(jwt.verify(req.body.TOKEN,secretKey)){
 
+        }
+    }
+    catch(e){
+        res.end();
+        return
+    }
+    const DATA = jwt.decode(req.body.TOKEN);
+    conn.query("select CUS_PASSWORD from CUSTOMER_SECURITY where CUSTOMER_ID='" + DATA.CUSTOMER_PACKAGE.CUSTOMER_ID + "' and CUS_PASSWORD='" + DATA.CUSTOMER_PACKAGE.CUSTOMER_OTHER_INFO + "';", (err, result) => {
+        if (err) {
+            res.end();
+            return;
+        }
+        try {
+            if (!result[0].CUS_PASSWORD) {
+                res.end();
+                return;
+            }
+            req.PASSWORD_STATUS = true;
+            console.log("run1");
+        }
+        catch (e) {
+            res.end();
+            return;
+        }
+    });
+    conn.query("select * from HISTORY_TRANSACTION where CUSTOMER_ID='"+DATA.CUSTOMER_PACKAGE.CUSTOMER_ID+"';",(err,result)=>{
+        if(err){
+            res.end();
+            return;
+        }
+        req.Result_Transaction=result;
+        console.log(req.Result_Transaction);
+        next();
+    })
+}
 module.exports = router;

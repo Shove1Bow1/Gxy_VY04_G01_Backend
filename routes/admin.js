@@ -2,7 +2,10 @@ var express = require('express');
 const con = require('../mysql');
 var router = express.Router();
 const crypto=require("crypto");
+const jwt=require("jsonwebtoken");
+const conn = require('../mysql');
 const algorithm="sha256";
+const secretKey="CoTu";
 /* GET Admin listing. */
 var ARRAY_APP_ID = ["PROFILE", "FLIGHT", "HOTEL", "AIRPORT", "APART", "XPERIENCE", "CARRENTAL", "EATS", "VOUCHER", "COMBO"];
 router.get("/getServiceManager", (req, res, next) => {
@@ -27,93 +30,165 @@ router.get("/getServiceManager", (req, res, next) => {
 }
 });
 
-router.get("/getServiceManager/:id", (req, res) => {   
-  con.query("select * from SERVICE_PROVIDER where APP_ID ='"+req.params.id+"'",function(err,result,filesd){
-      if(err) throw err;
-      res.set('Access-Control-Allow-Origin', '*'); 
-      res.send(JSON.stringify(result));
-  });
-})
-router.post("/getBaremPrice",(req,res)=>{
-  const id=(req.body.APP_ID);
-  console.log(id);
-  if(!req.body.APP_ID){
-    res.end();
+// get Service Info
+router.get("/getService/:id", (req, res) => {   
+  if(!req.params.id){
+    res.send({MESSAGE:"Không tồn tại service này",STATUS:false})
+    return;
   }
-  if(!ARRAY_APP_ID.includes(req.body.APP_ID)){
+  if(ARRAY_APP_ID.includes(req.params.id)){
+    con.query("select * from SERVICE_PROVIDER where APP_ID ='" + req.params.id + "'", function (err, result, filesd) {
+      if (err) throw err;
+      res.send(result);
+      return;
+    });
+  }
+  else{
+    res.send({MESSAGE:"Không tồn tại service này",STATUS:false});
+    return;
+  }
+})
+
+//get Barem Point
+router.get("/getBaremPrice/:id",(req,res)=>{
+  if(!req.params.id){
     res.end();
+    return;
+  }
+  if(!ARRAY_APP_ID.includes(req.params.id)){
+    res.end();
+    return;
   }
   else {
-    con.query("select APP_ID,MIN_PRICE,MAX_PRICE from SERVICE_PROVIDER where APP_ID ='" + req.body.APP_ID + "';", (err, result, filesd) => {
+    con.query("select APP_ID,MIN_PRICE,MAX_PRICE from SERVICE_PROVIDER where APP_ID ='" + req.params.id + "';", (err, result, filesd) => {
       console.log(result);
       if (err) throw err;
       res.send(JSON.stringify(result));
+      return;
     });
   }
 });
 // 
-router.get("/getBaremExchangePoint",(req,res)=>{
-  const id=(req.body.APP_ID);
-  if(!req.body.APP_ID){
-    res.end();
+router.get("/getBaremExchangePoint/:id",(req,res)=>{
+  if(!req.params.id){
+    res.send({
+      MESSAGE:"Không có id",
+      STATUS:false
+    });
+    return;
   }
-  if(!ARRAY_APP_ID.includes(req.body.APP_ID)){
-    res.end();
+  if(!ARRAY_APP_ID.includes(req.params.id)){
+    res.end({
+      MESSAGE:"Không tồn tại service này",
+      STATUS:false
+    });
+    return;
   }
-  else {
-    console.log(id);
-    con.query("select APP_ID,POINT_EXCHANGE_RANGE from SERVICE_PROVIDER where APP_ID ='" + req.body.APP_ID + "';", (err, result, filesd) => {
-      console.log(result);
-      if (err) throw err;
-      res.send(JSON.stringify(result));
-    })
-  }
- 
-})
-router.post("/updateServiceManager",(req,res,next)=>{
-  if(!req.body.APP_ID){
-    res.end();
-  }
-  else{
-      const MIN_PRICE=Number(req.body.MIN_PRICE);
-      const MAX_PRICE=Number(req.body.MAX_PRICE);
-      const POINT_EXACHANGE_RANGE=Number(req.body.POINT_EXACHANGE_RANGE);
-      con.query("Update SERVICE_PROVIDER set MIN_PRICE=" + parseInt(req.body.MIN_PRICE) +
-      ", MAX_PRICE=" + parseInt(req.body.MAX_PRICE) +
-      ", POINT_EXCHANGE_RANGE =" + parseInt(req.body.POINT_EXCHANGE_RANGE) +
-      " WHERE APP_ID='" + req.path.id + "';",
-      function (err, result, filesd) {
-          if (err) throw err;
-          res.send({
-            MESSAGE:"Cập nhật thành công",
-            STATUS:true
-          })
-          return;
-      });
-  }
-
-})
-
-router.post("/Login",(req,res,next)=>{
-  console.log(req.body.ADMIN_NAME);
-  if(req.body.ADMIN_NAME||req.body.ADMIN_PASSWORD){
-      res.end();
-  }
-  con.query("Select * from ADMIN where ADMIN_NAME='"+req.body.ADMIN_NAME+"' AND ADMIN_PASSWORD='"+req.body.ADMIN_PASSWORD+"';",function(err,result,filesd){
-      if(err) throw err;
-      session.ADMIN_ID=result[0].ADMIN_ID;
-      session.ADMIN_NAME=result[0].ADMIN_NAME;
-      console.log("success");
+  con.query("select APP_ID,POINT_EXCHANGE_RANGE from SERVICE_PROVIDER where APP_ID ='" + req.params.id + "';", (err, result, filesd) => {
+    console.log(result);
+    if (err) throw err;
+    res.send(JSON.stringify(result));
+    return;
   })
 })
 
-router.get("/Session",(req,res,next)=>{
-  res.set('Access-Control-Allow-Origin', '*');
-  if (session.ADMIN_ID && session.ADMIN_NAME) {
-      res.send({message:"Loged in"});
+// Update Service
+router.post("/updateServiceManager",(req,res,next)=>{
+  if(!req.body.APP_ID){
+    res.end();
+    return;
   }
-  else {
-      res.send({message:"no Admin"})
+  con.query("select * from ADMIN where ADMIN_PASSWORD='"+req.body.TOKEN+"');",(err,resultAuth)=>{
+    if(err){
+      res.end();
+      return;
+    }
+    if(!result[0]){
+      res.send({
+        MESSAGE:"Cập nhật không thành công",
+        STATUS:false,
+      });
+      return;
+    }
+    con.query("Update SERVICE_PROVIDER set MIN_PRICE=" + parseInt(req.body.MIN_PRICE) +
+    ", MAX_PRICE=" + parseInt(req.body.MAX_PRICE) +
+    ", POINT_EXCHANGE_RANGE =" + parseInt(req.body.POINT_EXCHANGE_RANGE) +
+    " WHERE APP_ID='" + req.path.id + "';",
+    function (err, result, filesd) {
+      if (err) throw err;
+      res.send({
+        MESSAGE: "Cập nhật thành công",
+        STATUS: true
+      })
+      return;
+    });
+  })
+  
+})
+
+router.post("/Login",(req,res,next)=>{
+  if(req.body.ADMIN_NAME||req.body.ADMIN_PASSWORD){
+      res.send({
+
+      });
+      return;
   }
+  const ADMIN_OTHER_INFO=crypto.createHash(algorithm).update(ADMIN_PASSWORD).digest("hex");
+  con.query("Select * from ADMIN where ADMIN_NAME='"+req.body.ADMIN_NAME+"' AND ADMIN_PASSWORD='"+ADMIN_OTHER_INFO+"';",function(err,result,filesd){
+      if(err){
+        res.end();
+        return;
+      }
+      if(!result[0]){
+        res.send({
+          MESSAGE:"Sai Mật Khẩu hoặc tên Admin",
+          STATUS:false,
+        })
+        return;
+      }
+      
+      res.send({
+        STATUS:true,
+        TOKEN: ADMIN_OTHER_INFO,
+        EXPIRED_TIME:1000*60*60,
+      })
+  })
+})
+
+// update admin password
+router.post("/updatePassword",(req,res)=>{
+  if(!req.body.ADMIN_OLD_PASSWORD){
+    res.end();
+    return;
+  }
+  if(!req.body.ADMIN_NEW_PASSWORD){
+    res.end();
+    return;
+  }
+  const ADMIN_OLD_PASSWORD=crypto.createHash(algorithm).update(ADMIN_OLD_PASSWORD).digest("hex");
+  con.query("select * from ADMIN where ADMIN_PASSWORD='"+ADMIN_OLD_PASSWORD+"';",(err,result)=>{
+    if(err){
+      res.end();
+      return;
+    }
+    if(!result[0]){
+      res.send({
+        MESSAGE:"Mật khẩu cũ sai"
+      })
+      return;
+    }
+  })
+  const ADMIN_NEW_PASSWORD=crypto.createHash(algorithm).update(ADMIN_NEW_PASSWORD).digest("hex");
+  con.query("update ADMIN set ADMIN_NEW_PASSWORD='"+ADMIN_NEW_PASSWORD+"';",(err,result)=>{
+    if(err){
+      res.end();
+      return;
+    }
+    res.send({
+      MESSAGE:"Cập nhật mật khẩu thành công",
+      STATUS:true
+    })
+    return;
+  })
 })
 module.exports = router;
