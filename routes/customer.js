@@ -679,7 +679,7 @@ async function insertTransicationAndPP(req, res, next) {
         res.end();
         return;
     }
-    if (!req, body.APP_ID) {
+    if (!req.body.APP_ID) {
         res.end();
         return;
     }
