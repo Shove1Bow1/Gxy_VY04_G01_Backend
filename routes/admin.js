@@ -52,11 +52,11 @@ router.get("/getService/:id", (req, res) => {
 //get Barem Point
 router.get("/getBaremPrice/:id",(req,res)=>{
   if(!req.params.id){
-    res.end();
+    res.send({MESSAGE:"Không tồn tại service này",STATUS:false});
     return;
   }
   if(!ARRAY_APP_ID.includes(req.params.id)){
-    res.end();
+    res.send({MESSAGE:"Không tồn tại service này",STATUS:false});
     return;
   }
   else {

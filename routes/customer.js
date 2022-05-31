@@ -46,9 +46,8 @@ const calculateOrderAmount = (items) => {
     return 1400;
 };
 
-////
+
 //// CUSTOMER 
-////
 //Register
 router.post("/Register", async (req, res) => {
     if (req.body.CUSTOMER_EMAIL) {
@@ -509,7 +508,7 @@ router.post("/getHistoryTransaction",getHistoryTransaction,(req,res)=>{
 })
 // get Process Point
 router.post("/getProcessPoint",getProcessPoint,(req,res)=>{
-    res.send({RESULT:req.Result});
+    res.send({RESULT:req.PP});
     return;
 })
 //// FUNCTION MIDDLE WARE
@@ -547,13 +546,12 @@ async function getProcessPoint(req,res,next){
             return;
         }
     });
-    conn.query("select * from HISTORY_TRANSACTION as HH, PROCESS_POINT as PP where CUSTOMER_ID='"+DATA.CUSTOMER_PACKAGE.CUSTOMER_ID+"' and PP.REFUND_STATE=false and PP.TRANSACTION_ID=HH.TRANSACTION_ID and PP.END_DATE<CURDATE();",(err,result)=>{
+    conn.query("select PP.* from HISTORY_TRANSACTION as HH, PROCESS_POINT as PP where HH.CUSTOMER_ID='"+DATA.CUSTOMER_PACKAGE.CUSTOMER_ID+"' and PP.REFUND_STATE=false and PP.TRANSACTION_ID=HH.TRANSACTION_ID and PP.END_DATE<CURDATE();",(err,result)=>{
         if(err){
             res.end();
             return;
         }
-        req.Result_Transaction=result;
-        console.log(req.Result_Transaction);
+        req.PP=result;
         next();
     })
 }

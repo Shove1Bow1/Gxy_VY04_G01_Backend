@@ -169,7 +169,6 @@ route.post("/Login", ((req, res) => {
 }));
 
 // Check Session
-
 route.post("/getStatus", (req, res) => {
     if (!req.body.TOKEN) {
         res.send({
@@ -217,5 +216,45 @@ route.post("/getPartnerInfo", (req, res) => {
         return;
     }
 })
-
+// Get History Transication
+route.post("/getHistoryTransaction",(req,res)=>{
+    if(!req.body.TOKEN){
+        res.end();
+        return;
+    } 
+    try{
+        if(jwt.verify(req.body.TOKEN,secretKey)){
+          
+        }
+    } 
+    catch(e){
+        res.end();
+        return;
+    }   
+    const DATA=jwt.decode(req.body.TOKEN);
+    if(!ARRAY_APP_ID.includes(DATA.APP_ID)){
+        res.end();
+        return;
+    }
+    console.log(DATA);
+    conn.query("select * from HISTORY_TRANSACTION as HT, PARTNER_SERVICE as PS where PS.PAR_SER_ID=HT.PAR_SER_ID and PS.PARTNER_ID='"+DATA.PARTNER_ID+"' and PS.APP_ID='"+DATA.APP_ID+"';",(err,result)=>{
+        if(err){
+            res.end();
+            return;
+        }
+        if(!result[0]){
+            res.send({
+                MESSAGE:"không có kết quả",
+                STATUS:false
+            });
+            return;
+        }
+        res.send({
+            RESULT: result,
+            STATUS: true,
+            MESSAGE: "Lấy kết quả thành công"
+        });
+        return;
+    })
+})
 module.exports = route;
