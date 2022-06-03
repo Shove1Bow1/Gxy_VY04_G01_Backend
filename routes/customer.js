@@ -529,6 +529,10 @@ router.post("/getProcessPoint",getProcessPoint,(req,res)=>{
     res.send({RESULT:req.PP});
     return;
 })
+// get refund list
+// router.post("/getListTransactionCanRefund",(req,res)=>{
+
+// })
 //// FUNCTION MIDDLE WARE
 // get Process Point
 async function getProcessPoint(req,res,next){
@@ -839,4 +843,38 @@ async function getHistoryTransaction(req,res,next){
         next();
     })
 }
+// async function getListTransactionCanRefund(req,res,next){
+//     if (!req.body.TOKEN) {
+//         res.end();
+//         return;
+//     }
+//     try{
+//         if(jwt.verify(req.body.TOKEN,secretKey)){
+
+//         }
+//     }
+//     catch(e){
+//         res.end();
+//         return
+//     }
+//     const DATA = jwt.decode(req.body.TOKEN);
+//     conn.query("select CUS_PASSWORD from CUSTOMER_SECURITY where CUSTOMER_ID='" + DATA.CUSTOMER_PACKAGE.CUSTOMER_ID + "' and CUS_PASSWORD='" + DATA.CUSTOMER_PACKAGE.CUSTOMER_OTHER_INFO + "';", (err, result) => {
+//         if (err) {
+//             res.end();
+//             return;
+//         }
+//         try {
+//             if (!result[0].CUS_PASSWORD) {
+//                 res.end();
+//                 return;
+//             }
+//             req.PASSWORD_STATUS = true;
+//             console.log("run1");
+//         }
+//         catch (e) {
+//             res.end();
+//             return;
+//         }
+//     });
+// }
 module.exports = router;
