@@ -503,21 +503,25 @@ router.post("/insertTransicationAndPP",insertTransicationAndPP,(req,res)=>{
 })
 // refund Process Point
 router.post("/refundTransicationAndPP",refundTransicationAndPP,async(req,res,next)=>{
-    conn.query("insert into HISTORY_TRANSACTION(TRANSACTION_ID,PAR_SER_ID,CUSTOMER_ID,TYPE_TRANSACTION,DATE_TRANSACTION,TRANSACTION_VALUE,REFUND_TRANSACTION) values ('" + req.NUMBER_ID + "','" + req.PAR_SER + "','" + req.CUSTOMER_ID + "',true,'" + req.body.DATE_TRANSACTION + "','" + req.TRANSACTION_VALUE + "','"+req.body.HISTORY_TRANSACTION_ID+"');", (err, result) => {
-        if (err) {
-            console.log(err);
-            res.end();
+    console.log(req.STATUS);
+    if(req.STATUS){
+        conn.query("insert into HISTORY_TRANSACTION(TRANSACTION_ID,PAR_SER_ID,CUSTOMER_ID,TYPE_TRANSACTION,DATE_TRANSACTION,TRANSACTION_VALUE,REFUND_TRANSACTION) values ('" + req.NUMBER_ID + "','" + req.PAR_SER + "','" + req.CUSTOMER_ID + "',true,'" + req.body.DATE_TRANSACTION + "','" + req.TRANSACTION_VALUE + "','" + req.body.HISTORY_TRANSACTION_ID + "');", (err, result) => {
+            if (err) {
+                console.log(err);
+                res.end();
+                return;
+            }
+        })
+        conn.query("update PROCESS_POINT set REFUND_STATE=true where TRANSACTION_ID='" + req.body.HISTORY_TRANSACTION_ID + "';", (err, result) => {
+            if (err) {
+                res.end();
+                return;
+            }
+            res.send({ MESSAGE: "success", STATUS: "true", HISTORY_REFUND_TRANSACTION_ID: req.NUMBER_ID });
             return;
-        }
-    })
-    conn.query("update PROCESS_POINT set REFUND_STATE=true where TRANSACTION_ID='"+req.body.HISTORY_TRANSACTION_ID+"';",(err,result)=>{
-        if(err){
-            res.end();
-            return;
-        } 
-        res.send({MESSAGE:"success",STATUS:"true",HISTORY_REFUND_TRANSACTION_ID:req.NUMBER_ID});
-        return;
-    })
+        })
+    }
+   
 })
 // get History Transaction
 router.post("/getHistoryTransaction",getHistoryTransaction,(req,res)=>{
@@ -617,18 +621,19 @@ async function refundTransicationAndPP(req,res,next){
         res.end();
         return;
     }
-    conn.query("select END_DATE from PROCESS_POINT where DATE(END_DATE)>'"+req.body.DATE_TRANSACTION+"' and TRANSACTION_ID='"+req.body.HISTORY_TRANSACTION_ID+"';",(err,result)=>{
+    conn.query("select END_DATE from PROCESS_POINT where DATE(END_DATE)>'"+req.body.DATE_TRANSACTION+"'and REFUND_STATE=false and TRANSACTION_ID='"+req.body.HISTORY_TRANSACTION_ID+"';",(err,result)=>{
         if(err){
             res.end();
             return;
         }
+        console.log(result[0]);
         if(!result[0]){
-            res.send({
-               MESSAGE:"Không thể hoàn trả dịch vụ",
-               STATUS:false, 
-            })
+            res.end();
+            console.log(result[0]);
+            req.STATUS=false;
             return;
         }
+        req.STATUS=true;
     })
     conn.query("select COUNT(*) as total from HISTORY_TRANSACTION", (err, result) => {
         if (err) {
