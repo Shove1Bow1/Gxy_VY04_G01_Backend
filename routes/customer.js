@@ -617,12 +617,12 @@ async function refundTransicationAndPP(req,res,next){
         res.end();
         return;
     }
-    conn.query("select DATE(END_DATE) as END_DATE from PROCESS_POINT where DATE(END_DATE)>'"+req.body.DATE_TRANSACTION+"';",(err,result)=>{
+    conn.query("select END_DATE from PROCESS_POINT where DATE(END_DATE)>'"+req.body.DATE_TRANSACTION+"' and TRANSACTION_ID='"+req.body.HISTORY_TRANSACTION_ID+"';",(err,result)=>{
         if(err){
             res.end();
             return;
         }
-        if(!result[0].END_DATE){
+        if(!result[0]){
             res.send({
                MESSAGE:"Không thể hoàn trả dịch vụ",
                STATUS:false, 
