@@ -628,7 +628,7 @@ async function refundTransicationAndPP(req,res,next){
         }
         console.log(result[0]);
         if(!result[0]){
-            res.end();
+            res.send({MESSAGE:"Không thể thực hiện giao dịch này",STATUS:"false"});
             console.log(result[0]);
             req.STATUS=false;
             return;
