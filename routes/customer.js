@@ -741,6 +741,7 @@ async function insertTransicationAndPP(req, res, next) {
         console.log("run 2");
         if(!result[0]){
             res.send({MESSAGE:"Partner Id không tồn tại"})
+            return;
         }
         req.PAR_SER = result[0].PAR_SER_ID;
     })
@@ -751,13 +752,11 @@ async function insertTransicationAndPP(req, res, next) {
             return;
         }
         console.log("run 4");
-        
         req.POINT_EXCHANGE=result[0].POINT_EXCHANGE_RANGE; 
         req.POINT_INSERT=parseInt(req.body.TRANSACTION_VALUE)/parseInt(req.POINT_EXCHANGE)*10;
         req.CUSTOMER_ID= DATA.CUSTOMER_PACKAGE.CUSTOMER_ID;
         next();
         return;
-      
     })
 }
 //Get History Point - Middle Ware
