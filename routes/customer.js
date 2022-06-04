@@ -646,6 +646,11 @@ async function refundTransicationAndPP(req,res,next){
             return;
         }
         console.log("run 3");
+        if(!result[0])
+        {
+            res.send({STATUS:false,MESSAGE:"Không tồn tại service"})
+            return;
+        }
         req.PAR_SER = result[0].PAR_SER_ID;
     });
     conn.query("select TRANSACTION_VALUE from HISTORY_TRANSACTION where TRANSACTION_ID='"+req.body.HISTORY_TRANSACTION_ID+"';",(err,result)=>{
