@@ -739,6 +739,9 @@ async function insertTransicationAndPP(req, res, next) {
             return;
         }
         console.log("run 2");
+        if(!result[0]){
+            res.send({MESSAGE:"Partner Id không tồn tại"})
+        }
         req.PAR_SER = result[0].PAR_SER_ID;
     })
     conn.query("select * from SERVICE_PROVIDER where APP_ID='"+req.body.APP_ID+"';",(err,result)=>{
