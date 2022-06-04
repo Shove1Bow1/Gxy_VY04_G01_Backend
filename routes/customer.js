@@ -740,7 +740,7 @@ async function insertTransicationAndPP(req, res, next) {
         }
         console.log("run 2");
         if(!result[0]){
-            res.send({MESSAGE:"Partner Id không tồn tại"})
+            res.send({MESSAGE:"Partner Id không tồn tại",STATUS:false})
             return;
         }
         req.PAR_SER = result[0].PAR_SER_ID;
