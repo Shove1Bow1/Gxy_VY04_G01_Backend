@@ -49,15 +49,29 @@ router.post("/Register", async (req, res) => {
                     con.query("select COUNT(*) as NUMBER from CUSTOMER_SECURITY", (err, result) => {
                         if (err) throw err;
                         numericId = result[0].NUMBER + 1;
-                        const CUSTOMER_ID = 'CUS' + numericId;
+                        const CUSTOMER_ID = 'CUS' + numericId;    
+                        try{
+                            await axios.post("https://api.votuan.xyz/api/v1/user/auth/register", {
+                                userId: numericId,
+                                email: req.body.CUSTOMER_EMAIL.toUpperCase(),
+                            })
+                        }
+                        catch(e){
+                            res.end();
+                            return;
+                        }
                         con.query("insert into CUSTOMER_INFO(CUSTOMER_ID,FULL_NAME,GENDER,DATE_OF_BIRTH,POINT_AVAILABLE) values ('" +
                             CUSTOMER_ID + "','" +
                             req.body.CUSTOMER_NAME + "','" +
                             req.body.GENDER + "','" +
                             req.body.BIRTHDAY + "',0);"
                             , (err, result) => {
-                                if (err) throw (err);
+                                if (err) {
+                                    res.end();
+                                    return;
+                                };
                             })
+                    
                         const PASSWORD_TOKEN=crypto.createHash(algorithm).update(req.body.CUS_PASSWORD).digest("hex");
                         con.query("insert into CUSTOMER_SECURITY(CUSTOMER_ID,CUSTOMER_EMAIL,CUS_PASSWORD) values ('" +
                             CUSTOMER_ID + "','" +
@@ -820,6 +834,7 @@ async function getHistoryPoint(req, res, next) {
 }
 //Get History Transaction - Middle ware
 async function getHistoryTransaction(req,res,next){
+    console.log(req.body.TOKEN);
     if (!req.body.TOKEN) {
         res.end();
         return;
@@ -834,6 +849,7 @@ async function getHistoryTransaction(req,res,next){
         return
     }
     const DATA = jwt.decode(req.body.TOKEN);
+    console.log(DATA);
     conn.query("select CUS_PASSWORD from CUSTOMER_SECURITY where CUSTOMER_ID='" + DATA.CUSTOMER_PACKAGE.CUSTOMER_ID + "' and CUS_PASSWORD='" + DATA.CUSTOMER_PACKAGE.CUSTOMER_OTHER_INFO + "';", (err, result) => {
         if (err) {
             res.end();
@@ -852,8 +868,9 @@ async function getHistoryTransaction(req,res,next){
             return;
         }
     });
-    conn.query("select * from HISTORY_TRANSACTION where CUSTOMER_ID='"+DATA.CUSTOMER_PACKAGE.CUSTOMER_ID+"';",(err,result)=>{
+    conn.query("select * from HISTORY_TRANSACTION as HT,PARTNER_SERVICE as PS where HT.CUSTOMER_ID='"+DATA.CUSTOMER_PACKAGE.CUSTOMER_ID+"' and HT.PAR_SER_ID=PS.PAR_SER_ID;",(err,result)=>{
         if(err){
+            console.log(err);
             res.end();
             return;
         }
