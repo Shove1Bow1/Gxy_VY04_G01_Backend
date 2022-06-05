@@ -36,7 +36,7 @@ const calculateOrderAmount = (items) => {
 };
 //// CUSTOMER 
 //Register
-router.post("/Register", async (req, res) => {
+router.post("/Register",(req, res) => {
     if (req.body.CUSTOMER_EMAIL) {
         con.query("select CUSTOMER_EMAIL from CUSTOMER_SECURITY where CUSTOMER_EMAIL='" +
             req.body.CUSTOMER_EMAIL + "';", (err, result) => {
@@ -51,7 +51,7 @@ router.post("/Register", async (req, res) => {
                         numericId = result[0].NUMBER + 1;
                         const CUSTOMER_ID = 'CUS' + numericId;    
                         try{
-                            await axios.post("https://api.votuan.xyz/api/v1/user/auth/register", {
+                            axios.post("https://api.votuan.xyz/api/v1/user/auth/register", {
                                 userId: numericId,
                                 email: req.body.CUSTOMER_EMAIL.toUpperCase(),
                             })
