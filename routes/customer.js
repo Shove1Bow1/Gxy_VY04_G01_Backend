@@ -52,7 +52,7 @@ router.post("/Register",(req, res) => {
                         const CUSTOMER_ID = 'CUS' + numericId;    
                         try{
                             axios.post("https://api.votuan.xyz/api/v1/user/auth/register", {
-                                userId: numericId,
+                                userId: CUSTOMER_ID,
                                 email: req.body.CUSTOMER_EMAIL.toUpperCase(),
                             })
                         }
