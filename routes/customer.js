@@ -9,7 +9,7 @@ const axios = require('axios');
 const conn = require('../mysql');
 var ARRAY_APP_ID = ["PROFILE", "FLIGHT", "HOTEL", "AIRPORT", "APART", "XPERIENCE", "CARRENTAL", "EATS", "VOUCHER", "COMBO"];
 let algorithm = "sha256";
-let secretKey ="CoTu"
+let secretKey ="MIIBXjCCAQSgAwIBAgIGAXvykuMKMAoGCCqGSM49BAMCMDYxNDAyBgNVBAMMK3NpQXBNOXpBdk1VaXhXVWVGaGtjZXg1NjJRRzFyQUhXaV96UlFQTVpQaG8wHhcNMjEwOTE3MDcwNTE3WhcNMjIwNzE0MDcwNTE3WjA2MTQwMgYDVQQDDCtzaUFwTTl6QXZNVWl4V1VlRmhrY2V4NTYyUUcxckFIV2lfelJRUE1aUGhvMFkwEwYHKoZIzj0CAQYIKoZIzj0DAQcDQgAE8PbPvCv5D5xBFHEZlBp/q5OEUymq7RIgWIi7tkl9aGSpYE35UH+kBKDnphJO3odpPZ5gvgKs2nwRWcrDnUjYLDAKBggqhkjOPQQDAgNIADBFAiEA1yyMTRe66MhEXID9+uVub7woMkNYd0LhSHwKSPMUUTkCIFQGsfm1ecXOpeGOufAhv+A1QWZMuTWqYt+uh/YSRNDn"
 router.post("/create-payment-intent", async (req, res) => {
     const items = 3000;
     // Create a PaymentIntent with the order amount and currency
@@ -49,12 +49,19 @@ router.post("/Register",(req, res) => {
                     con.query("select COUNT(*) as NUMBER from CUSTOMER_SECURITY", (err, result) => {
                         if (err) throw err;
                         numericId = result[0].NUMBER + 1;
-                        const CUSTOMER_ID = 'CUS' + numericId;    
+                        const CUSTOMER_ID = 'CUS' + numericId;
+                        let config = {
+                            headers: {
+                              app_id: 'vy04',
+                            }
+                          }
+                          
+                          let data = {
+                            userId:numericId,
+                            email:req.body.CUSTOMER_EMAIL
+                          }    
                         try{
-                            axios.post("https://api.votuan.xyz/api/v1/user/auth/register", {
-                                userId: CUSTOMER_ID,
-                                email: req.body.CUSTOMER_EMAIL.toUpperCase(),
-                            })
+                            axios.post("https://api.votuan.xyz/api/v1/user/auth/register",data,config)
                         }
                         catch(e){
                             res.end();
@@ -95,11 +102,17 @@ router.post("/Register",(req, res) => {
                                     }
                                 }
                                 const CUSTOMER_INFO_PACKAGE = {
+                                   
                                     CUSTOMER_ID: CUSTOMER_ID,
                                     CUSTOMER_OTHER_INFO:PASSWORD_TOKEN,
                                 }
                                 const PACKAGE_DATA =
                                 {
+                                    username: req.body.CUSTOMER_NAME,
+                                    email: req.body.CUSTOMER_EMAIL,
+                                    sub: CUSTOMER_ID,
+                                    type: "USER",
+                                    appId: "vy04",
                                     CUSTOMER_PACKAGE: CUSTOMER_INFO_PACKAGE,
                                 }
                                 const HASH_PACKAGE = jwt.sign(PACKAGE_DATA, secretKey, { expiresIn: "7d" });
@@ -144,11 +157,17 @@ router.post("/LoginEmail", (req, res) => {
                     }
                     else {
                         const CUSTOMER_INFO_PACKAGE = {
+                          
                             CUSTOMER_ID: result[0].CUSTOMER_ID,
                             CUSTOMER_OTHER_INFO:PASSWORD_TOKEN,
                         }
                         const PACKAGE_DATA =
-                        {
+                        {  
+                            username: result[0].FULL_NAME,
+                            email: req.body.CUSTOMER_EMAIL,
+                            sub: result[0].CUSTOMER_ID,
+                            type: "USER",
+                            appId: "vy04",
                             CUSTOMER_PACKAGE: CUSTOMER_INFO_PACKAGE,  
                         }
                         const HASH_PACKAGE = jwt.sign(PACKAGE_DATA, secretKey, { expiresIn: "7d" });
@@ -561,7 +580,7 @@ router.post("/subtractPoint",subtractPoint,(req,res)=>{
         var mm=String(today.getMonth()+1).padStart(2,'0');
         var yyyy=today.getFullYear();
         var resultDate=yyyy+"-"+mm+"-"+dd;
-        conn.query("insert into HISTORY_POINT (HISTORY_ID,CUSTOMER_ID,APP_ID,TYPE_HISTORY_POINT,POINT_VALUE,ACTIVATED_DATE) values ('"+req.ID+"','"+req.CUSTOMER_ID+"','"+req.body.APP_ID+"',false,'"+req.NEW_POINT+"','"+resultDate+"');",(err,result)=>{
+        conn.query("insert into HISTORY_POINT (HISTORY_ID,CUSTOMER_ID,APP_ID,TYPE_HISTORY_POINT,POINT_VALUE,ACTIVATED_DATE) values ('"+req.ID+"','"+req.CUSTOMER_ID+"','"+req.body.APP_ID+"',false,'"+req.body.POINT+"','"+resultDate+"');",(err,result)=>{
             if(err){
                 res.end();
                 return;
@@ -574,6 +593,14 @@ router.post("/subtractPoint",subtractPoint,(req,res)=>{
         res.send({ MESSAGE: "Không thể mua gift voucher", STATUS: false })
         return;
     }
+})
+// get voucher available
+router.post("/getAvailableVoucher",getAvailableVoucher,(req,res)=>{ 
+    res.send({
+        VOUCHERS:req.VOUCHER_AVAILABLE,
+        STATUS:true,
+    })
+    return;
 })
 //// FUNCTION MIDDLE WARE
 // get Process Point
@@ -905,6 +932,7 @@ async function getHistoryTransaction(req,res,next){
         next();
     })
 }
+//Subtract Point
 async function subtractPoint(req,res,next){
     if (!req.body.TOKEN) {
         res.end();
@@ -970,4 +998,32 @@ async function subtractPoint(req,res,next){
         })
     })
 }
+//Get Available Vouchers
+async function getAvailableVoucher(req,res,next){
+   
+    try{
+        if (jwt.verify(req.body.TOKEN,secretKey)){
+
+        }
+    }
+    catch(e){
+        res.end();
+        return;
+    }
+    const DATA=jwt.decode(req.body.TOKEN);
+    let config = {
+        headers: {
+          user_id: DATA.CUSTOMER_PACKAGE.CUSTOMER_ID,
+        }
+      }
+    try{
+        await axios.get("https://api.votuan.xyz/api/v1/user/voucher/owner?type=expired",config).then(respond=>{try{console.log(req.VOUCHER_AVAILABLE=respond.data.data.vouchers)}catch(e){throw e;}});
+     }
+     catch(e){
+       console.log(e);
+       res.end();
+       return;
+    }
+    next();
+} 
 module.exports = router;
