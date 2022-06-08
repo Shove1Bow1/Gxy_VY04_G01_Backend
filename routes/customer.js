@@ -369,7 +369,7 @@ router.post("/changePassword",(req,res)=>{
     }
 })
 /// Get Point
-router.post("/postPointAvailable", (req, res) => {  
+router.post("/getAvailablePoint", (req, res) => {  
     if (!req.body.TOKEN) {
         res.end();
         return;
