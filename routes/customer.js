@@ -544,12 +544,36 @@ router.post("/getHistoryTransaction",getHistoryTransaction,(req,res)=>{
 })
 // get Process Point
 router.post("/getProcessPoint",getProcessPoint,(req,res)=>{
-    res.send({RESULT:req.PP});
+    res.send({STATUS:true,RESULT:req.PP});
     return;
 })
 // get refund list
-router.post("/getRefundableList",(req,res)=>{
-
+router.post("/subtractPoint",subtractPoint,(req,res)=>{
+    if(req.NEW_POINT){
+        conn.query("update CUSTOMER_INFO set POINT_AVAILABLE='" + req.NEW_POINT + "' where CUSTOMER_ID='" + req.CUSTOMER_ID + "';", (err, result) => {
+            if (err) {
+                res.end();
+                return;
+            }
+        })
+        var today=new Date();
+        var dd=String(today.getDate()).padStart(2,'0');
+        var mm=String(today.getMonth()+1).padStart(2,'0');
+        var yyyy=today.getFullYear();
+        var resultDate=yyyy+"-"+mm+"-"+dd;
+        conn.query("insert into HISTORY_POINT (HISTORY_ID,CUSTOMER_ID,APP_ID,TYPE_HISTORY_POINT,POINT_VALUE,ACTIVATED_DATE) values ('"+req.ID+"','"+req.CUSTOMER_ID+"','"+req.body.APP_ID+"',false,'"+req.NEW_POINT+"','"+resultDate+"');",(err,result)=>{
+            if(err){
+                res.end();
+                return;
+            }
+            res.send({MESSAGE:"Mua gift voucher thành công",STATUS:true})
+            return;
+        })
+    }
+    else {
+        res.send({ MESSAGE: "Không thể mua gift voucher", STATUS: false })
+        return;
+    }
 })
 //// FUNCTION MIDDLE WARE
 // get Process Point
@@ -586,11 +610,13 @@ async function getProcessPoint(req,res,next){
             return;
         }
     });
-    conn.query("select PP.* from HISTORY_TRANSACTION as HH, PROCESS_POINT as PP where HH.CUSTOMER_ID='"+DATA.CUSTOMER_PACKAGE.CUSTOMER_ID+"' and PP.REFUND_STATE=false and PP.TRANSACTION_ID=HH.TRANSACTION_ID and PP.END_DATE<CURDATE();",(err,result)=>{
+    conn.query("select PP.*,HH.DATE_TRANSACTION,PS.APP_ID from HISTORY_TRANSACTION as HH, PROCESS_POINT as PP,PARTNER_SERVICE as PS where HH.CUSTOMER_ID='"+DATA.CUSTOMER_PACKAGE.CUSTOMER_ID+"'and PP.REFUND_STATE=false and PP.TRANSACTION_ID=HH.TRANSACTION_ID and PP.END_DATE>CURDATE() and HH.PAR_SER_ID = PS.PAR_SER_ID;",(err,result)=>{
         if(err){
+            console.log(err);
             res.end();
             return;
         }
+        console.log(result);
         req.PP=result;
         next();
     })
@@ -821,7 +847,7 @@ async function getHistoryPoint(req, res, next) {
         }
     });
    
-    conn.query("select * from HISTORY_POINT where CUSTOMER_ID='" + DATA.CUSTOMER_PACKAGE.CUSTOMER_ID + "';", async function (err, result) {
+    conn.query("select *,DATE() from HISTORY_POINT where CUSTOMER_ID='" + DATA.CUSTOMER_PACKAGE.CUSTOMER_ID + "';", async function (err, result) {
         if (err) {
             res.end();
             return;
@@ -879,9 +905,13 @@ async function getHistoryTransaction(req,res,next){
         next();
     })
 }
-async function getRefundableList(req,res,next){
+async function subtractPoint(req,res,next){
     if (!req.body.TOKEN) {
         res.end();
+        return;
+    }
+    if(!req.body.APP_ID||!ARRAY_APP_ID.includes(req.body.APP_ID)){
+        res.send({MESSAGE:"App id không tồn tại"});
         return;
     }
     try{
@@ -892,6 +922,11 @@ async function getRefundableList(req,res,next){
         res.end();
         return
     }
+    if (!req.body.POINT||!parseInt(req.body.POINT)) {
+        res.send({MESSAGE:"Sai định dạng điểm"});
+        return;
+    }
+    const POINT_VALUE=parseInt(req.body.POINT);
     const DATA = jwt.decode(req.body.TOKEN);
     conn.query("select CUS_PASSWORD from CUSTOMER_SECURITY where CUSTOMER_ID='" + DATA.CUSTOMER_PACKAGE.CUSTOMER_ID + "' and CUS_PASSWORD='" + DATA.CUSTOMER_PACKAGE.CUSTOMER_OTHER_INFO + "';", (err, result) => {
         if (err) {
@@ -911,6 +946,28 @@ async function getRefundableList(req,res,next){
             return;
         }
     });
+    conn.query("select * from CUSTOMER_INFO where CUSTOMER_ID='"+DATA.CUSTOMER_PACKAGE.CUSTOMER_ID+"';",(err,result)=>{
+        if(err){
+            res.end();
+            result;
+        }
 
+        const POINT_AVAILABLE=parseInt(result[0].POINT_AVAILABLE);
+        if(POINT_AVAILABLE<POINT_VALUE && POINT_AVAILABLE-POINT_VALUE<=0){
+            res.send({MESSAGE:"Điểm thưởng quy đổi không đủ"})
+            return;
+        }
+        req.NEW_POINT=parseInt(result[0].POINT_AVAILABLE)-req.body.POINT;
+        req.CUSTOMER_ID=DATA.CUSTOMER_PACKAGE.CUSTOMER_ID;  
+        conn.query("select COUNT(*) as NUM from HISTORY_POINT", (err, result) => {
+            if (err) {
+                res.end();
+                result;
+            }
+            NUM = parseInt(result[0].NUM) + 1;
+            req.ID = "HP" + NUM;
+            next();
+        })
+    })
 }
 module.exports = router;
