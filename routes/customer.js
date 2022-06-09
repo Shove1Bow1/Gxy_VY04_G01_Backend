@@ -595,9 +595,20 @@ router.post("/subtractPoint",subtractPoint,(req,res)=>{
     }
 })
 // get voucher available
-router.post("/getAvailableVoucher",getAvailableVoucher,(req,res)=>{ 
+router.post("/getAvailableVoucher",getAvailableVoucher,(req,res)=>{
+    const GiftVouchers=[];
+    const Vouchers=[];
+    const VoucherOwner=req.VOUCHER_AVAILABLE;
+    for(var i=0;i<VoucherOwner.length;i++){
+        if(VoucherOwner[i].voucherCode){
+            Vouchers.push(VoucherOwner[i]);
+        }
+        else
+            GiftVouchers.push(VoucherOwner[i]);
+    }
     res.send({
-        VOUCHERS:req.VOUCHER_AVAILABLE,
+        VOUCHERS:Vouchers,
+        GIFTVOUCHER:GiftVouchers,
         STATUS:true,
     })
     return;
@@ -1021,7 +1032,7 @@ async function getAvailableVoucher(req,res,next){
         }
       }
     try{
-        await axios.get("https://api.votuan.xyz/api/v1/user/voucher/owner?type=expired",config).then(respond=>{try{console.log(req.VOUCHER_AVAILABLE=respond.data.data.vouchers)}catch(e){throw e;}});
+        await axios.get("https://api.votuan.xyz/api/v1/user/voucher/owner",config).then(respond=>{try{console.log(req.VOUCHER_AVAILABLE=respond.data.data.vouchers)}catch(e){throw e;}});
      }
      catch(e){
        console.log(e);
