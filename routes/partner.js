@@ -33,9 +33,14 @@ route.post("/Register", ((req, res) => {
             return;
         }
         numericId = result[0].NUMBER + 1;
+        console.log(req.body.PARTNER_NAME);
+        if(!req.body.PARTNER_NAME){
+            res.end();
+            return;
+        }
+        const PARTNER_NAME=req.body.PARTNER_NAME;
         const PARTNER_ID = 'PAR' + numericId;
-        conn.query("insert into PARTNER_INFO(PARTNER_ID,PARTNER_NAME) values ('" + PARTNER_ID + "','" +
-            + req.body.PARTNER_NAME + "');"
+        conn.query("insert into PARTNER_INFO(PARTNER_ID,PARTNER_NAME) values ('" + PARTNER_ID + "','" + PARTNER_NAME + "');"
             , (err, result) => {
                 if (err) {
                     res.end();
@@ -43,9 +48,7 @@ route.post("/Register", ((req, res) => {
                 }
             })
         const PARTNER_PASSWORD=crypto.createHash(algorithm).update(req.body.PARTNER_PASSWORD).digest("hex");
-        conn.query("insert into PARTNER_SECURITY(PARTNER_ID,PARTNER_EMAIL,PARTNER_PASSWORD) values ('" + PARTNER_ID +
-            "','" + req.body.PARTNER_EMAIL.toUpperCase() +
-            "','" + PARTNER_PASSWORD + "');"
+        conn.query("insert into PARTNER_SECURITY(PARTNER_ID,PARTNER_EMAIL,PARTNER_PASSWORD) values ('" + PARTNER_ID +"','" + req.body.PARTNER_EMAIL.toUpperCase() +"','" + PARTNER_PASSWORD + "');"
             , (err, result) => {
                 if (err) {
                     res.end();
@@ -79,7 +82,7 @@ route.post("/Register", ((req, res) => {
                 sub: PARTNER_ID,
                 type: "PARTNER",
                 appId: "vy04",
-                services: req.body.APP,
+                services: [req.body.APP],
             }
         }
         else{
@@ -125,9 +128,7 @@ route.post("/Login", ((req, res) => {
     }
     console.log(req.body.PARTNER_EMAIL);
     const PARTNER_PASSWORD=crypto.createHash(algorithm).update(req.body.PARTNER_PASSWORD).digest("hex");
-    conn.query("select * from PARTNER_SECURITY,PARTNER_INFO where PARTNER_EMAIL='" +
-        req.body.PARTNER_EMAIL.toUpperCase() + "' and PARTNER_PASSWORD='" +
-        PARTNER_PASSWORD + "' and PARTNER_SECURITY.PARTNER_ID=PARTNER_INFO.PARTNER_ID;", (err, result) => {
+    conn.query("select * from PARTNER_SECURITY,PARTNER_INFO where PARTNER_EMAIL='" +req.body.PARTNER_EMAIL.toUpperCase() + "' and PARTNER_PASSWORD='" +PARTNER_PASSWORD + "' and PARTNER_SECURITY.PARTNER_ID=PARTNER_INFO.PARTNER_ID;", (err, result) => {
             if (err) {
                 res.end();
                 return;
@@ -204,7 +205,7 @@ route.post("/getStatus", (req, res) => {
         })
     }
     try {
-        if (jwt.verify(req.body.TOKEN, algorithm)) {
+        if (jwt.verify(req.body.TOKEN, secretKey)) {
             res.send({
                 STATUS: true,
             })
@@ -225,7 +226,7 @@ route.post("/getPartnerInfo", (req, res) => {
         return;
     }
     try {
-        if (jwt.verify(req.body.TOKEN, algorithm)) {
+        if (jwt.verify(req.body.TOKEN, secretKey)) {
             const DATA = jwt.decode(req.body.TOKEN);
             console.log(DATA);
             res.send(
