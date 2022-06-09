@@ -839,27 +839,29 @@ async function insertTransicationAndPP(req, res, next) {
 //Get History Point - Middle Ware
 async function getHistoryPoint(req, res, next) {
     if (!req.body.TOKEN) {
+       
         res.end();
         return;
     }
     try{
         if(jwt.verify(req.body.TOKEN,secretKey)){
-
+         
         }
     }
-    catch(e){
+    catch(e){  
+        console.log("end 1");
         res.end();
         return
     }  
     const DATA = jwt.decode(req.body.TOKEN);
     req.TOKEN=DATA;
     conn.query("select CUS_PASSWORD from CUSTOMER_SECURITY where CUSTOMER_ID='" + DATA.CUSTOMER_PACKAGE.CUSTOMER_ID + "' and CUS_PASSWORD='" + DATA.CUSTOMER_PACKAGE.CUSTOMER_OTHER_INFO + "';", (err, result) => {
-
+      
         if (err) {
             res.end();
             return;
         }
-        console.log("second one");
+     
         try {
             if (!result[0].CUS_PASSWORD) {
                 res.end();
@@ -868,14 +870,16 @@ async function getHistoryPoint(req, res, next) {
             req.PASSWORD_STATUS = true;
            
         }
-        catch (e) {
+        catch (e) {   
+            console.log("second one");
             res.end();
             return;
         }
     });
    
-    conn.query("select *,DATE() from HISTORY_POINT where CUSTOMER_ID='" + DATA.CUSTOMER_PACKAGE.CUSTOMER_ID + "';", async function (err, result) {
+    conn.query("select * from HISTORY_POINT where CUSTOMER_ID='" + DATA.CUSTOMER_PACKAGE.CUSTOMER_ID + "';", async function (err, result) {
         if (err) {
+            console.log(err);
             res.end();
             return;
         }
