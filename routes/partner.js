@@ -6,7 +6,7 @@ const tempRun = express();
 const route = express.Router();
 const jwt = require('jsonwebtoken');
 var ARRAY_APP_ID = ["PROFILE", "FLIGHT", "HOTEL", "AIRPORT", "APART", "XPERIENCE", "CARRENTAL", "EATS", "VOUCHER", "COMBO"];
-let secretKey = "CoTu";
+let secretKey = "MIIBXjCCAQSgAwIBAgIGAXvykuMKMAoGCCqGSM49BAMCMDYxNDAyBgNVBAMMK3NpQXBNOXpBdk1VaXhXVWVGaGtjZXg1NjJRRzFyQUhXaV96UlFQTVpQaG8wHhcNMjEwOTE3MDcwNTE3WhcNMjIwNzE0MDcwNTE3WjA2MTQwMgYDVQQDDCtzaUFwTTl6QXZNVWl4V1VlRmhrY2V4NTYyUUcxckFIV2lfelJRUE1aUGhvMFkwEwYHKoZIzj0CAQYIKoZIzj0DAQcDQgAE8PbPvCv5D5xBFHEZlBp/q5OEUymq7RIgWIi7tkl9aGSpYE35UH+kBKDnphJO3odpPZ5gvgKs2nwRWcrDnUjYLDAKBggqhkjOPQQDAgNIADBFAiEA1yyMTRe66MhEXID9+uVub7woMkNYd0LhSHwKSPMUUTkCIFQGsfm1ecXOpeGOufAhv+A1QWZMuTWqYt+uh/YSRNDn";
 let algorithm ="sha256";
 // Register a Partner Account
 route.post("/checkEmail",(req,res)=>{
@@ -73,6 +73,13 @@ route.post("/Register", ((req, res) => {
                 PARTNER_NAME: req.body.PARTNER_NAME,
                 PARTNER_ID: PARTNER_ID,
                 APP_ID: req.body.APP,
+                name: req.body.PARTNER_NAME,
+                username: req.body.PARTNER_EMAIL,
+                email: req.body.PARTNER_EMAIL,
+                sub: PARTNER_ID,
+                type: "PARTNER",
+                appId: "vy04",
+                services: req.body.APP,
             }
         }
         else{
@@ -85,9 +92,16 @@ route.post("/Register", ((req, res) => {
                     PARTNER_NAME: result[0].PARTNER_NAME,
                     PARTNER_ID: result[0].PARTNER_ID,
                     APP_ID: APP_ID,
+                    name: req.body.PARTNER_NAME,
+                    username: req.body.PARTNER_EMAIL,
+                    email: req.body.PARTNER_EMAIL,
+                    sub: PARTNER_ID,
+                    type: "PARTNER",
+                    appId: "vy04",
+                    services: APP_ID,
                 }
             }
-        } 
+        }
         const PARTNER_HASH_PACKAGE = jwt.sign(PARTNER_PACKAGE, secretKey, { expiresIn: "24h" })
         res.send({
             STATUS: true,
@@ -141,6 +155,13 @@ route.post("/Login", ((req, res) => {
                         PARTNER_NAME: result[0].PARTNER_NAME,
                         PARTNER_ID: result[0].PARTNER_ID,
                         APP_ID: req.body.APP,
+                        name: result[0].PARTNER_NAME,
+                        username: req.body.PARTNER_EMAIL,
+                        email: result[0].PARTNER_EMAIL,
+                        sub: result[0].PARTNER_ID,
+                        type: "PARTNER",
+                        appId: "vy04",
+                        services: [req.body.APP],
                     }
                 }
                 else{
@@ -153,6 +174,13 @@ route.post("/Login", ((req, res) => {
                             PARTNER_NAME: result[0].PARTNER_NAME,
                             PARTNER_ID: result[0].PARTNER_ID,
                             APP_ID: ARRAY_APP_INCLUDE,
+                            name: result[0].PARTNER_NAME,
+                            username: req.body.PARTNER_EMAIL,
+                            email: result[0].PARTNER_EMAIL,
+                            sub: result[0].PARTNER_ID,
+                            type: "PARTNER",
+                            appId: "vy04",
+                            services: ARRAY_APP_INCLUDE,
                         }
                     }
                 } 
