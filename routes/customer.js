@@ -57,7 +57,7 @@ router.post("/Register",(req, res) => {
                           }
                           
                           let data = {
-                            userId:numericId,
+                            userId:CUSTOMER_ID,
                             email:req.body.CUSTOMER_EMAIL
                           }    
                         try{
