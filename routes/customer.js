@@ -522,17 +522,31 @@ router.post("/insertTransicationAndPP",insertTransicationAndPP,(req,res)=>{
         console.log("run 3"); 
        
     });
-    conn.query("insert into PROCESS_POINT(TRANSACTION_ID,POINT_VALUE,END_DATE,REFUND_STATE) values ('"+req.NUMBER_ID+"','"+parseInt(req.POINT_INSERT)+"','"+req.body.END_DATE+"',false);",(err,result)=>{
-        if(err){
-            console.log(err);
-            res.end();
+    var today = new Date();
+    var dd = String(today.getDate()).padStart(2, '0');
+    var mm = String(today.getMonth() + 1).padStart(2, '0'); //January is 0!
+    var yyyy = today.getFullYear();
+    todayFormat1 =yyyy+ '-'+ mm + '-' + dd  ;
+    todayFormat2 =yyyy+'/'+mm+'/'+dd;
+    if(req.body.END_DATE.localeCompare(today)||req.body.localeCompare(today)){
+        const POINT_AVAILABLE=parseInt(req.POINT_AVAILABLE)+parseInt();
+        conn.query("update CUSTOMER_INFO set POINT_AVAILABLE="+POINT_AVAILABLE+"where CUSTOMER_ID='"+req.CUSTOMER_ID+"'",(err,result)=>{
+            res.send({ MESSAGE: "success", STATUS: "true", HISTORY_TRANSACTION_ID: req.NUMBER_ID });
             return;
-        }
-        console.log("run 5");
-        res.send({MESSAGE:"success",STATUS:"true",HISTORY_TRANSACTION_ID:req.NUMBER_ID});
-        return;
-    })
-   
+        })
+    }
+    else {
+        conn.query("insert into PROCESS_POINT(TRANSACTION_ID,POINT_VALUE,END_DATE,REFUND_STATE) values ('" + req.NUMBER_ID + "','" + parseInt(req.POINT_INSERT) + "','" + req.body.END_DATE + "',false);", (err, result) => {
+            if (err) {
+                console.log(err);
+                res.end();
+                return;
+            }
+            console.log("run 5");
+            res.send({ MESSAGE: "success", STATUS: "true", HISTORY_TRANSACTION_ID: req.NUMBER_ID });
+            return;
+        })
+    }
 })
 // refund Process Point
 router.post("/refundTransicationAndPP",refundTransicationAndPP,async(req,res,next)=>{
@@ -819,6 +833,13 @@ async function insertTransicationAndPP(req, res, next) {
         console.log("run 1");
         const VALUE= parseInt(result[0].total)+1;
         req.NUMBER_ID ="HT"+VALUE;
+    })
+    conn.query("select POINT_AVAILABLE from CUSTOMER_INFO where CUSTOMER_ID='"+DATA.CUSTOMER_PACKAGE.CUSTOMER_ID+"';",(err,result)=>{
+        if(err){
+            res.end();
+            return;
+        }
+        req.POINT_AVAILABLE=result[0].POINT_AVAILABLE;
     })
     conn.query("select PAR_SER_ID from PARTNER_SERVICE where APP_ID='" + req.body.APP_ID + "' and PARTNER_ID='" + req.body.PARTNER_ID + "';", (err, result) => {
         if (err) {
