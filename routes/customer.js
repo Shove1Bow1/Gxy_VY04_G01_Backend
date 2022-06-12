@@ -520,7 +520,6 @@ router.post("/insertTransicationAndPP",insertTransicationAndPP,(req,res)=>{
             return;
         }
         console.log("run 3"); 
-       
     });
     var today = new Date();
     var dd = String(today.getDate()).padStart(2, '0');
@@ -528,9 +527,15 @@ router.post("/insertTransicationAndPP",insertTransicationAndPP,(req,res)=>{
     var yyyy = today.getFullYear();
     todayFormat1 =yyyy+ '-'+ mm + '-' + dd  ;
     todayFormat2 =yyyy+'/'+mm+'/'+dd;
-    if(req.body.END_DATE.localeCompare(today)||req.body.localeCompare(today)){
-        const POINT_AVAILABLE=parseInt(req.POINT_AVAILABLE)+parseInt();
-        conn.query("update CUSTOMER_INFO set POINT_AVAILABLE="+POINT_AVAILABLE+"where CUSTOMER_ID='"+req.CUSTOMER_ID+"'",(err,result)=>{
+    const END_DATE=req.body.END_DATE;
+    if(END_DATE.contains(todayFormat1)||END_DATE.contains(todayFormat2)){
+        const POINT_AVAILABLE=parseInt(req.POINT_AVAILABLE)+parseInt(req.POINT_INSERT);
+        conn.query("update CUSTOMER_INFO set POINT_AVAILABLE="+POINT_AVAILABLE+" where CUSTOMER_ID='"+req.CUSTOMER_ID+"'",(err,result)=>{
+            if(err){
+                console.log(err);
+                res.end();
+                return;
+            }
             res.send({ MESSAGE: "success", STATUS: "true", HISTORY_TRANSACTION_ID: req.NUMBER_ID });
             return;
         })
@@ -547,6 +552,7 @@ router.post("/insertTransicationAndPP",insertTransicationAndPP,(req,res)=>{
             return;
         })
     }
+
 })
 // refund Process Point
 router.post("/refundTransicationAndPP",refundTransicationAndPP,async(req,res,next)=>{
@@ -610,16 +616,8 @@ router.post("/subtractPoint",subtractPoint,(req,res)=>{
 })
 // get voucher available
 router.post("/getAvailableVoucher",getAvailableVoucher,(req,res)=>{
-    const GiftVouchers=[];
-    const Vouchers=[];
-    const VoucherOwner=req.VOUCHER_AVAILABLE;
-    for(var i=0;i<VoucherOwner.length;i++){
-        if(VoucherOwner[i].voucherCode){
-            Vouchers.push(VoucherOwner[i]);
-        }
-        else
-            GiftVouchers.push(VoucherOwner[i]);
-    }
+    const GiftVouchers=req.VOUCHER_AVAILABLE;
+    const Vouchers=req.GIFT_VOUCHER_AVAILABLE;
     res.send({
         VOUCHERS:Vouchers,
         GIFTVOUCHER:GiftVouchers,
@@ -839,6 +837,7 @@ async function insertTransicationAndPP(req, res, next) {
             res.end();
             return;
         }
+        console.log(result);
         req.POINT_AVAILABLE=result[0].POINT_AVAILABLE;
     })
     conn.query("select PAR_SER_ID from PARTNER_SERVICE where APP_ID='" + req.body.APP_ID + "' and PARTNER_ID='" + req.body.PARTNER_ID + "';", (err, result) => {
@@ -1054,6 +1053,14 @@ async function getAvailableVoucher(req,res,next){
       }
     try{
         await axios.get("https://api.votuan.xyz/api/v1/user/voucher/owner",config).then(respond=>{try{console.log(req.VOUCHER_AVAILABLE=respond.data.data.vouchers)}catch(e){throw e;}});
+     }
+     catch(e){
+       console.log(e);
+       res.end();
+       return;
+    }
+    try{
+        await axios.get("https://api.votuan.xyz/api/v1/user/gift-card/owner?type=available",config).then(respond=>{try{console.log(req.GIFT_VOUCHER_AVAILABLE=respond.data.data.vouchers)}catch(e){throw e;}});
      }
      catch(e){
        console.log(e);
