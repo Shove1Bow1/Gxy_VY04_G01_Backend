@@ -528,7 +528,7 @@ router.post("/insertTransicationAndPP",insertTransicationAndPP,(req,res)=>{
     todayFormat1 =yyyy+ '-'+ mm + '-' + dd  ;
     todayFormat2 =yyyy+'/'+mm+'/'+dd;
     const END_DATE=req.body.END_DATE;
-    if(END_DATE.contains(todayFormat1)||END_DATE.contains(todayFormat2)){
+    if(String(END_DATE).valueOf(todayFormat1)||String(END_DATE).valueOf(todayFormat2)){
         const POINT_AVAILABLE=parseInt(req.POINT_AVAILABLE)+parseInt(req.POINT_INSERT);
         conn.query("update CUSTOMER_INFO set POINT_AVAILABLE="+POINT_AVAILABLE+" where CUSTOMER_ID='"+req.CUSTOMER_ID+"'",(err,result)=>{
             if(err){
@@ -616,8 +616,8 @@ router.post("/subtractPoint",subtractPoint,(req,res)=>{
 })
 // get voucher available
 router.post("/getAvailableVoucher",getAvailableVoucher,(req,res)=>{
-    const GiftVouchers=req.VOUCHER_AVAILABLE;
-    const Vouchers=req.GIFT_VOUCHER_AVAILABLE;
+    const GiftVouchers=req.GIFT_VOUCHER_AVAILABLE;
+    const Vouchers=req.VOUCHER_AVAILABLE;
     res.send({
         VOUCHERS:Vouchers,
         GIFTVOUCHER:GiftVouchers,
@@ -1052,7 +1052,7 @@ async function getAvailableVoucher(req,res,next){
         }
       }
     try{
-        await axios.get("https://api.votuan.xyz/api/v1/user/voucher/owner",config).then(respond=>{try{console.log(req.VOUCHER_AVAILABLE=respond.data.data.vouchers)}catch(e){throw e;}});
+        await axios.get("https://api.votuan.xyz/api/v1/user/voucher/owner?type=available",config).then(respond=>{try{req.VOUCHER_AVAILABLE=respond.data.data.vouchers}catch(e){throw e;}});
      }
      catch(e){
        console.log(e);
@@ -1060,7 +1060,7 @@ async function getAvailableVoucher(req,res,next){
        return;
     }
     try{
-        await axios.get("https://api.votuan.xyz/api/v1/user/gift-card/owner?type=available",config).then(respond=>{try{console.log(req.GIFT_VOUCHER_AVAILABLE=respond.data.data.vouchers)}catch(e){throw e;}});
+        await axios.get("https://api.votuan.xyz/api/v1/user/gift-card/owner?type=available",config).then(respond=>{try{req.GIFT_VOUCHER_AVAILABLE=respond.data.data.vouchers}catch(e){throw e;}});
      }
      catch(e){
        console.log(e);
