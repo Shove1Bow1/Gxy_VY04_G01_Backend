@@ -528,7 +528,7 @@ router.post("/insertTransicationAndPP",insertTransicationAndPP,(req,res)=>{
     todayFormat1 =yyyy+ '-'+ mm + '-' + dd  ;
     todayFormat2 =yyyy+'/'+mm+'/'+dd;
     const END_DATE=req.body.END_DATE;
-    if(String(END_DATE).valueOf(todayFormat1)||String(END_DATE).valueOf(todayFormat2)){
+    if(END_DATE===todayFormat1||END_DATE===todayFormat2){
         const POINT_AVAILABLE=parseInt(req.POINT_AVAILABLE)+parseInt(req.POINT_INSERT);
         conn.query("update CUSTOMER_INFO set POINT_AVAILABLE="+POINT_AVAILABLE+" where CUSTOMER_ID='"+req.CUSTOMER_ID+"'",(err,result)=>{
             if(err){
@@ -616,6 +616,7 @@ router.post("/subtractPoint",subtractPoint,(req,res)=>{
 })
 // get voucher available
 router.post("/getAvailableVoucher",getAvailableVoucher,(req,res)=>{
+    console.log(req.VOUCHER_AVAILABLE);
     const GiftVouchers=req.GIFT_VOUCHER_AVAILABLE;
     const Vouchers=req.VOUCHER_AVAILABLE;
     res.send({
