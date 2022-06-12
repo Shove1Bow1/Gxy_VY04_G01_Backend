@@ -1053,7 +1053,7 @@ async function getAvailableVoucher(req,res,next){
         }
       }
     try{
-        await axios.get("https://api.votuan.xyz/api/v1/user/voucher/owner?type=available",config).then(respond=>{try{req.VOUCHER_AVAILABLE=respond.data.data.vouchers}catch(e){throw e;}});
+        await axios.get("https://api.votuan.xyz/api/v1/user/voucher/owner",config).then(respond=>{try{req.VOUCHER_AVAILABLE=respond.data.data.vouchers}catch(e){throw e;}});
      }
      catch(e){
        console.log(e);
@@ -1061,7 +1061,7 @@ async function getAvailableVoucher(req,res,next){
        return;
     }
     try{
-        await axios.get("https://api.votuan.xyz/api/v1/user/gift-card/owner?type=available",config).then(respond=>{try{req.GIFT_VOUCHER_AVAILABLE=respond.data.data.vouchers}catch(e){throw e;}});
+        await axios.get("https://api.votuan.xyz/api/v1/user/gift-card/owner",config).then(respond=>{try{req.GIFT_VOUCHER_AVAILABLE=respond.data.data.giftCards}catch(e){throw e;}});
      }
      catch(e){
        console.log(e);
