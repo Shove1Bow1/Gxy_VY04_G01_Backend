@@ -527,23 +527,25 @@ router.post("/insertTransicationAndPP",insertTransicationAndPP,(req,res)=>{
     var yyyy = today.getFullYear();
     todayFormat1 =yyyy+ '-'+ mm + '-' + dd  ;
     todayFormat2 =yyyy+'/'+mm+'/'+dd;
-    const END_DATE=req.body.END_DATE;
-    if(END_DATE===todayFormat1||END_DATE===todayFormat2){
+    const END_DATE=""+req.body.END_DATE;
+    console.log(END_DATE);
+    console.log(todayFormat1);
+    if(END_DATE===""+todayFormat1||END_DATE===""+todayFormat2){
         const POINT_AVAILABLE=parseInt(req.POINT_AVAILABLE)+parseInt(req.POINT_INSERT);
         conn.query("update CUSTOMER_INFO set POINT_AVAILABLE="+POINT_AVAILABLE+" where CUSTOMER_ID='"+req.CUSTOMER_ID+"'",(err,result)=>{
             if(err){
-                console.log(err);
                 res.end();
                 return;
             }
+            console.log("uncheck");
             res.send({ MESSAGE: "success", STATUS: "true", HISTORY_TRANSACTION_ID: req.NUMBER_ID });
             return;
         })
+        conn.query("insert into HISTORY_POINT ")
     }
     else {
         conn.query("insert into PROCESS_POINT(TRANSACTION_ID,POINT_VALUE,END_DATE,REFUND_STATE) values ('" + req.NUMBER_ID + "','" + parseInt(req.POINT_INSERT) + "','" + req.body.END_DATE + "',false);", (err, result) => {
             if (err) {
-                console.log(err);
                 res.end();
                 return;
             }
@@ -616,12 +618,23 @@ router.post("/subtractPoint",subtractPoint,(req,res)=>{
 })
 // get voucher available
 router.post("/getAvailableVoucher",getAvailableVoucher,(req,res)=>{
-    console.log(req.VOUCHER_AVAILABLE);
     const GiftVouchers=req.GIFT_VOUCHER_AVAILABLE;
+    const GiftVouchersAppId=[];
+    for(var i=0;i<GiftVouchers.length;i++){
+        if(req.body.APP_ID===GiftVouchers[i].type){
+            GiftVouchersAppId.push(GiftVouchers[i]);
+        }
+    }
     const Vouchers=req.VOUCHER_AVAILABLE;
+    const VouchersAppId=[];
+    for(var i=0;i<Vouchers.length;i++){
+        if(req.body.APP_ID===Vouchers[i].type){
+            VouchersAppId.push(Vouchers[i]);
+        }
+    }
     res.send({
-        VOUCHERS:Vouchers,
-        GIFTVOUCHER:GiftVouchers,
+        VOUCHERS:VouchersAppId,
+        GIFTVOUCHER:GiftVouchersAppId,
         STATUS:true,
     })
     return;
@@ -1036,7 +1049,10 @@ async function subtractPoint(req,res,next){
 }
 //Get Available Vouchers
 async function getAvailableVoucher(req,res,next){
-   
+    if(!req.body.APP_ID){
+        res.send({MESSAGE:"Không có Mã Service truyền vào"})
+        return;
+    }
     try{
         if (jwt.verify(req.body.TOKEN,secretKey)){
 
