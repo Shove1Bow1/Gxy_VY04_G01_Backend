@@ -26,6 +26,10 @@ route.post("/checkEmail",(req,res)=>{
     });
 })
 route.post("/Register", ((req, res) => {
+    if(!req.body.APP_ID.includes("VOUCHER")){
+        res.send({MESSAGE:"Vui lòng chọn thêm mục dịch vụ voucher"});
+        return;
+    }
     var numericId;
     conn.query("select COUNT(*) as NUMBER from PARTNER_SECURITY", (err, result) => {
         if (err) {
@@ -284,6 +288,64 @@ route.post("/getHistoryTransaction",(req,res)=>{
             MESSAGE: "Lấy kết quả thành công"
         });
         return;
+    })
+})
+route.post("/getServices",(req,res)=>{
+    try{
+        if(jwt.verify(req.body.TOKEN,secretKey)){
+
+        }
+    }
+    catch(e){
+        res.send({MESSAGE:"Token không dùng được"});
+        return;
+    }
+    const DATA=jwt.decode(req.body.TOKEN);
+    const SERVICE_LINK=[];
+    if(DATA.APP_ID.includes("FLIGHT")){
+        SERVICE_LINK.push({
+            APP_NAME:"FLIGHT",
+            LINK:req.body.TOKEN,
+        })
+    }
+    if(DATA.APP_ID.includes("HOTEL")){
+        SERVICE_LINK.push({
+            APP_NAME:"HOTEL",
+            LINK:req.body.TOKEN,
+        })
+    }
+    if(DATA.APP_ID.includes("AIRPORT")){
+        SERVICE_LINK.push({
+            APP_NAME:"FLIGHT",
+            LINK:req.body.TOKEN,
+        })
+    }
+    if(DATA.APP_ID.includes("FLIGHT")){
+        SERVICE_LINK.push({
+            APP_NAME:"FLIGHT",
+            LINK:req.body.TOKEN,
+        })
+    }
+    if(DATA.APP_ID.includes("FLIGHT")){
+        SERVICE_LINK.push({
+            APP_NAME:"FLIGHT",
+            LINK:req.body.TOKEN,
+        })
+    }
+    if(DATA.APP_ID.includes("FLIGHT")){
+        SERVICE_LINK.push({
+            APP_NAME:"FLIGHT",
+            LINK:req.body.TOKEN,
+        })
+    }
+    if(DATA.APP_ID.includes("FLIGHT")){
+        SERVICE_LINK.push({
+            APP_NAME:"FLIGHT",
+            LINK:req.body.TOKEN,
+        })
+    }
+    SERVICE_LINK.push({
+
     })
 })
 module.exports = route;
