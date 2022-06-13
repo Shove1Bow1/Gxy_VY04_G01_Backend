@@ -130,8 +130,7 @@ route.post("/Login", ((req, res) => {
         res.send({ ERROR: "Please enter your password" });
         return;
     }
-    console.log(req.body.PARTNER_EMAIL);
-    const PARTNER_PASSWORD=crypto.createHash(secretKey).update(req.body.PARTNER_PASSWORD).digest("hex");
+    const PARTNER_PASSWORD=crypto.createHash(algorithm).update(req.body.PARTNER_PASSWORD).digest("hex");
     conn.query("select * from PARTNER_SECURITY,PARTNER_INFO where PARTNER_EMAIL='" +req.body.PARTNER_EMAIL.toUpperCase() + "' and PARTNER_PASSWORD='" +PARTNER_PASSWORD + "' and PARTNER_SECURITY.PARTNER_ID=PARTNER_INFO.PARTNER_ID;", (err, result) => {
             if (err) {
                 res.end();
