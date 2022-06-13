@@ -231,7 +231,6 @@ route.post("/getPartnerInfo", (req, res) => {
     try {
         if (jwt.verify(req.body.TOKEN, secretKey)) {
             const DATA = jwt.decode(req.body.TOKEN);
-            console.log(DATA);
             res.send(
                 {
                     PARTNER_NAME: DATA.PARTNER_NAME,
@@ -351,7 +350,7 @@ route.post("/getServices",(req,res)=>{
     }
     SERVICE_LINK.push({
         APP_NAME:"VOUCHER",
-        LINK:"http://voucher.vovanhoangtuan.xyz/?token="+req.body.TOKEN+"&appId=vy04",
+        LINK:"http://voucher.votuan.xyz/partner/auth?token="+req.body.TOKEN+"&appId=vy04",
     })
     res.send({
         APP_SERVICE:SERVICE_LINK,
