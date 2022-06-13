@@ -304,47 +304,135 @@ route.post("/getServices",(req,res)=>{
     if(DATA.APP_ID.includes("FLIGHT")){
         SERVICE_LINK.push({
             APP_NAME:"FLIGHT",
-            LINK:req.body.TOKEN,
+            LINK:"/Partner/Profile",
         })
     }
     if(DATA.APP_ID.includes("HOTEL")){
         SERVICE_LINK.push({
             APP_NAME:"HOTEL",
-            LINK:req.body.TOKEN,
+            LINK:"/Partner/Profile",
         })
     }
     if(DATA.APP_ID.includes("AIRPORT")){
         SERVICE_LINK.push({
             APP_NAME:"AIRPORT",
-            LINK:req.body.TOKEN,
+            LINK:"/Partner/Profile",
         })
     }
     if(DATA.APP_ID.includes("APART")){
         SERVICE_LINK.push({
             APP_NAME:"APART",
-            LINK:"/"+req.body.TOKEN,
+            LINK:"/Partner/Profile",
         })
     }
     if(DATA.APP_ID.includes("XPERIENCE")){
         SERVICE_LINK.push({
             APP_NAME:"XPERIENCE",
-            LINK:req.body.TOKEN,
+            LINK:"/Partner/Profile",
         })
     }
-    if(DATA.APP_ID.includes("FLIGHT")){
+    if(DATA.APP_ID.includes("COMBO")){
         SERVICE_LINK.push({
-            APP_NAME:"FLIGHT",
-            LINK:req.body.TOKEN,
+            APP_NAME:"COMBO",
+            LINK:"/Partner/Profile",
         })
     }
-    if(DATA.APP_ID.includes("FLIGHT")){
+    if(DATA.APP_ID.includes("CARRENTAL")){
         SERVICE_LINK.push({
-            APP_NAME:"FLIGHT",
-            LINK:req.body.TOKEN,
+            APP_NAME:"CARRENTAL",
+            LINK:"/Partner/Profile",
+        })
+    }
+    if(DATA.APP_ID.includes("EATS")){
+        SERVICE_LINK.push({
+            APP_NAME:"EATS",
+            LINK:"/Partner/Profile",
         })
     }
     SERVICE_LINK.push({
-
+        APP_NAME:"VOUCHER",
+        LINK:"http://voucher.vovanhoangtuan.xyz/?token="+req.body.TOKEN+"&appId=vy04",
     })
+    res.send({
+        APP_SERVICE:SERVICE_LINK,
+    })
+    return;
 })
+route.post("/LoginNguyenApart", ((req, res) => {
+    if (!req.body.PARTNER_EMAIL) {
+        res.send({ ERROR: "Please enter your email" });
+        return;
+    }
+    if (!req.body.PARTNER_PASSWORD) {   
+        res.send({ ERROR: "Please enter your password" });
+        return;
+    }
+    const PARTNER_PASSWORD=crypto.createHash(algorithm).update(req.body.PARTNER_PASSWORD).digest("hex");
+    conn.query("select * from PARTNER_SECURITY,PARTNER_INFO where PARTNER_EMAIL='" +req.body.PARTNER_EMAIL.toUpperCase() + "' and PARTNER_PASSWORD='" +PARTNER_PASSWORD + "' and PARTNER_SECURITY.PARTNER_ID=PARTNER_INFO.PARTNER_ID;", (err, result) => {
+            if (err) {
+                res.end();
+                return;
+            };
+            if (!result[0]) {
+                res.send({ ERROR: "Your Password or Email is wrong" });
+                return;
+            }
+            conn.query("select * from PARTNER_SERVICE where PARTNER_ID='" + result[0].PARTNER_ID + "';", (err, resultApp) => {
+                var ARRAY_APP_INCLUDE = [];
+                if (err) {
+                    res.end();
+                    return;
+                }
+                console.log(resultApp);
+                for (var i = 0; i < resultApp.length; i++) {
+                    ARRAY_APP_INCLUDE.push(resultApp[i].APP_ID);
+                }  
+             
+                var PARTNER_PACKAGE = {};  
+                console.log(ARRAY_APP_INCLUDE);
+                if (req.body.APP && ARRAY_APP_INCLUDE.includes(req.body.APP)) {   
+                    console.log("check")
+                    PARTNER_PACKAGE = {
+                        PARTNER_NAME: result[0].PARTNER_NAME,
+                        PARTNER_ID: result[0].PARTNER_ID,
+                        APP_ID: req.body.APP,
+                        name: result[0].PARTNER_NAME,
+                        username: req.body.PARTNER_EMAIL,
+                        email: result[0].PARTNER_EMAIL,
+                        sub: result[0].PARTNER_ID,
+                        type: "PARTNER",
+                        appId: "vy04",
+                        services: [req.body.APP],
+                    }
+                }
+                else{
+                    if (!ARRAY_APP_INCLUDE.includes(req.body.APP)&& req.body.APP) {
+                        res.send({ ERROR: "Tài khoản không đăng ký service này",STATUS:false });
+                        return;
+                    }
+                    else {
+                        PARTNER_PACKAGE = {
+                            PARTNER_NAME: result[0].PARTNER_NAME,
+                            PARTNER_ID: result[0].PARTNER_ID,
+                            APP_ID: ARRAY_APP_INCLUDE,
+                            name: result[0].PARTNER_NAME,
+                            username: req.body.PARTNER_EMAIL,
+                            email: result[0].PARTNER_EMAIL,
+                            sub: result[0].PARTNER_ID,
+                            type: "PARTNER",
+                            appId: "vy04",
+                            services: ARRAY_APP_INCLUDE,
+                        }
+                    }
+                } 
+                res.send({
+                    STATUS: true,
+                    TOKEN: PARTNER_PACKAGE,
+                    EXPIRED_TIME: 3600 * 24,
+                })
+                return;
+            })
+        }
+    )
+}));
 module.exports = route;
