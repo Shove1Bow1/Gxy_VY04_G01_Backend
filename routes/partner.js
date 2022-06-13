@@ -424,10 +424,17 @@ route.post("/LoginNguyenApart", ((req, res) => {
                             services: ARRAY_APP_INCLUDE,
                         }
                     }
-                } 
+                }
+                const PARTNER_NGUYEN={
+                    PARTNER_NAME: result[0].PARTNER_NAME,
+                    PARTNER_ID: result[0].PARTNER_ID,
+                    APP_ID: req.body.APP,
+                }
+                const PARTNER_HASH_PACKAGE = jwt.sign(PARTNER_PACKAGE, secretKey, { expiresIn: "24h" })
                 res.send({
                     STATUS: true,
-                    TOKEN: PARTNER_PACKAGE,
+                    TOKEN: PARTNER_HASH_PACKAGE,
+                    data:PARTNER_NGUYEN,
                     EXPIRED_TIME: 3600 * 24,
                 })
                 return;
