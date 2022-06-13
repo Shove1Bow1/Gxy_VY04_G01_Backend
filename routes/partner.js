@@ -131,7 +131,7 @@ route.post("/Login", ((req, res) => {
         return;
     }
     console.log(req.body.PARTNER_EMAIL);
-    const PARTNER_PASSWORD=crypto.createHash(algorithm).update(req.body.PARTNER_PASSWORD).digest("hex");
+    const PARTNER_PASSWORD=crypto.createHash(secretKey).update(req.body.PARTNER_PASSWORD).digest("hex");
     conn.query("select * from PARTNER_SECURITY,PARTNER_INFO where PARTNER_EMAIL='" +req.body.PARTNER_EMAIL.toUpperCase() + "' and PARTNER_PASSWORD='" +PARTNER_PASSWORD + "' and PARTNER_SECURITY.PARTNER_ID=PARTNER_INFO.PARTNER_ID;", (err, result) => {
             if (err) {
                 res.end();
@@ -316,19 +316,19 @@ route.post("/getServices",(req,res)=>{
     }
     if(DATA.APP_ID.includes("AIRPORT")){
         SERVICE_LINK.push({
-            APP_NAME:"FLIGHT",
+            APP_NAME:"AIRPORT",
             LINK:req.body.TOKEN,
         })
     }
-    if(DATA.APP_ID.includes("FLIGHT")){
+    if(DATA.APP_ID.includes("APART")){
         SERVICE_LINK.push({
-            APP_NAME:"FLIGHT",
-            LINK:req.body.TOKEN,
+            APP_NAME:"APART",
+            LINK:"/"+req.body.TOKEN,
         })
     }
-    if(DATA.APP_ID.includes("FLIGHT")){
+    if(DATA.APP_ID.includes("XPERIENCE")){
         SERVICE_LINK.push({
-            APP_NAME:"FLIGHT",
+            APP_NAME:"XPERIENCE",
             LINK:req.body.TOKEN,
         })
     }
