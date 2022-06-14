@@ -195,6 +195,7 @@ router.post("/getCustomerName", (req, res) => {
     try {
         if (jwt.verify(req.body.TOKEN, secretKey)) {
             const INFO = jwt.decode(req.body.TOKEN);
+            console.log(INFO.CUSTOMER_PACKAGE.CUSTOMER_ID);
             conn.query("select * from CUSTOMER_SECURITY,CUSTOMER_INFO where CUSTOMER_SECURITY.CUSTOMER_ID='"+INFO.CUSTOMER_PACKAGE.CUSTOMER_ID+"' and CUS_PASSWORD='"+INFO.CUSTOMER_PACKAGE.CUSTOMER_OTHER_INFO+"' and CUSTOMER_SECURITY.CUSTOMER_ID=CUSTOMER_INFO.CUSTOMER_ID;",(err,result)=>{
                 if (err) {
                     res.send({ STATUS: false, MESSAGE: "please delete this token" });
@@ -203,10 +204,38 @@ router.post("/getCustomerName", (req, res) => {
                 if(!result[0]){
                     res.send({ STATUS: false, MESSAGE: "please delete this token" });
                     return;
-                } 
-                res.send({
-                    STATUS:true,
-                    CUSTOMER_NAME: result[0].FULL_NAME,
+                }
+                const POINT = parseInt(result[0].POINT_AVAILABLE);
+               
+                conn.query("select PP.* from HISTORY_TRANSACTION as HT,PROCESS_POINT as PP where HT.CUSTOMER_ID='" + INFO.CUSTOMER_PACKAGE.CUSTOMER_ID + "' and PP.TRANSACTION_ID=HT.TRANSACTION_ID and PP.REFUND_STATE=0 and (DATE(PP.END_DATE)=CURDATE());", (err, result1) => {
+                    if(err) {
+                        console.log(err);
+                        res.end();
+                        return;
+                    }
+                    if(result1[0]){
+                        const lengthResult = result1.length;
+                        for (var i = 0; i < lengthResult; i++) {
+                            POINT += parseInt(result1[i].POINT_VALUE);
+                            conn.query("update PROCESS_POINT set REFUND_STATE=1 where TRANSACTION_ID='" + result1[i].TRANSACTION_ID + "';", (err, result2) => {
+                                if (err) {
+                                    console.log(err);
+                                    return;
+                                }
+                            })
+                            console.log("run");
+                        }
+                        conn.query("update CUSTOMER_INFO set POINT_AVAILABLE=" + POINT + "where CUSTOMER_ID='" + INFO.CUSTOMER_PACKAGE.CUSTOMER_ID + "';", (err, result2) => {
+                           console.log("success");
+                        })
+                    }
+                    else{
+                        res.send({
+                            STATUS: true,
+                            CUSTOMER_NAME: result[0].FULL_NAME,
+                        })
+                        return;
+                    }
                 })
             })
          
