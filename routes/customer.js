@@ -513,48 +513,52 @@ router.post("/getHistoryPoint",getHistoryPoint,async (req,res,next)=>{
 })
 //insert point
 router.post("/insertTransicationAndPP",insertTransicationAndPP,(req,res)=>{
-    conn.query("insert into HISTORY_TRANSACTION(TRANSACTION_ID,PAR_SER_ID,CUSTOMER_ID,TYPE_TRANSACTION,DATE_TRANSACTION,TRANSACTION_VALUE,INFO_TRANSACTION) values ('" + req.NUMBER_ID + "','" + req.PAR_SER + "','" + req.CUSTOMER_ID + "',false,'" + req.body.DATE_TRANSACTION + "','" + req.body.TRANSACTION_VALUE + "','"+req.body.INFO_TRANSACTION+"')", (err, result) => {
+    conn.query("insert into HISTORY_TRANSACTION(TRANSACTION_ID,PAR_SER_ID,CUSTOMER_ID,TYPE_TRANSACTION,DATE_TRANSACTION,TRANSACTION_VALUE,INFO_TRANSACTION) values ('" + req.NUMBER_ID + "','" + req.PAR_SER + "','" + req.CUSTOMER_ID + "',false,'" + req.body.DATE_TRANSACTION + "','" + req.body.TRANSACTION_VALUE + "','" + req.body.INFO_TRANSACTION + "')", (err, result) => {
         if (err) {
             console.log(err);
             res.end();
             return;
         }
-        console.log("run 3"); 
+        console.log("run 3");
+        var today = new Date();
+        var dd = String(today.getDate()).padStart(2, '0');
+        var mm = String(today.getMonth() + 1).padStart(2, '0'); //January is 0!
+        var yyyy = today.getFullYear();
+        todayFormat1 = yyyy + '-' + mm + '-' + dd;
+        todayFormat2 = yyyy + '/' + mm + '/' + dd;
+        const END_DATE = "" + req.body.END_DATE;
+        if (END_DATE === "" + todayFormat1 || END_DATE === "" + todayFormat2) {
+            const POINT_AVAILABLE = parseInt(req.POINT_AVAILABLE) + parseInt(req.POINT_INSERT);
+            conn.query("update CUSTOMER_INFO set POINT_AVAILABLE=" + POINT_AVAILABLE + " where CUSTOMER_ID='" + req.CUSTOMER_ID + "';", (err, result) => {
+                if (err) {
+                    console.log(err);
+                    res.end();
+                    return;
+                }
+                console.log("uncheck");
+            })
+            conn.query("insert into HISTORY_POINT (HISTORY_ID,CUSTOMER_ID,APP_ID,TYPE_HISTORY_POINT,POINT_VALUE,ACTIVATED_DATE) values ('" + req.ID + "','" + req.CUSTOMER_ID + "','" + req.body.APP_ID + "',false,'" + req.POINT_INSERT + "','" + req.body.END_DATE + "');", (err, result2) => {
+                if (err) {
+                    console.log(err);
+                    res.send({ MESSAGE: "Không thể cộng điểm thưởng vào lịch sử" });
+                    return;
+                }
+                res.send({ MESSAGE: "success", STATUS: "true", HISTORY_TRANSACTION_ID: req.NUMBER_ID });
+                return;
+            })
+        }
+        else {
+            conn.query("insert into PROCESS_POINT(TRANSACTION_ID,POINT_VALUE,END_DATE,REFUND_STATE) values ('" + req.NUMBER_ID + "','" + parseInt(req.POINT_INSERT) + "','" + req.body.END_DATE + "',false);", (err, result) => {
+                if (err) {
+                    res.end();
+                    return;
+                }
+                console.log("run 5");
+                res.send({ MESSAGE: "success", STATUS: "true", HISTORY_TRANSACTION_ID: req.NUMBER_ID });
+                return;
+            })
+        }
     });
-    var today = new Date();
-    var dd = String(today.getDate()).padStart(2, '0');
-    var mm = String(today.getMonth() + 1).padStart(2, '0'); //January is 0!
-    var yyyy = today.getFullYear();
-    todayFormat1 =yyyy+ '-'+ mm + '-' + dd  ;
-    todayFormat2 =yyyy+'/'+mm+'/'+dd;
-    const END_DATE=""+req.body.END_DATE;
-    console.log(END_DATE);
-    console.log(todayFormat1);
-    if(END_DATE===""+todayFormat1||END_DATE===""+todayFormat2){
-        const POINT_AVAILABLE=parseInt(req.POINT_AVAILABLE)+parseInt(req.POINT_INSERT);
-        conn.query("update CUSTOMER_INFO set POINT_AVAILABLE="+POINT_AVAILABLE+" where CUSTOMER_ID='"+req.CUSTOMER_ID+"'",(err,result)=>{
-            if(err){
-                res.end();
-                return;
-            }
-            console.log("uncheck");
-            res.send({ MESSAGE: "success", STATUS: "true", HISTORY_TRANSACTION_ID: req.NUMBER_ID });
-            return;
-        })
-        conn.query("insert into HISTORY_POINT ")
-    }
-    else {
-        conn.query("insert into PROCESS_POINT(TRANSACTION_ID,POINT_VALUE,END_DATE,REFUND_STATE) values ('" + req.NUMBER_ID + "','" + parseInt(req.POINT_INSERT) + "','" + req.body.END_DATE + "',false);", (err, result) => {
-            if (err) {
-                res.end();
-                return;
-            }
-            console.log("run 5");
-            res.send({ MESSAGE: "success", STATUS: "true", HISTORY_TRANSACTION_ID: req.NUMBER_ID });
-            return;
-        })
-    }
-
 })
 // refund Process Point
 router.post("/refundTransicationAndPP",refundTransicationAndPP,async(req,res,next)=>{
@@ -867,6 +871,15 @@ async function insertTransicationAndPP(req, res, next) {
         }
         req.PAR_SER = result[0].PAR_SER_ID;
     })
+    conn.query("select count(*) as NUMBER from HISTORY_POINT ;",(err,result)=>{
+        if(err){
+            res.send({MESSAGE:"Xảy ra lỗi khi đếm điểm thưởng"});
+            return;
+        }
+        const NUMBER=parseInt(result[0].NUMBER)+1;
+        req.ID='HP'+NUMBER;
+        console.log(req.ID);
+    })
     conn.query("select * from SERVICE_PROVIDER where APP_ID='"+req.body.APP_ID+"';",(err,result)=>{
         if(err){
             console.log(err)
@@ -878,7 +891,6 @@ async function insertTransicationAndPP(req, res, next) {
         req.POINT_INSERT=parseInt(req.body.TRANSACTION_VALUE)/parseInt(req.POINT_EXCHANGE)*10;
         req.CUSTOMER_ID= DATA.CUSTOMER_PACKAGE.CUSTOMER_ID;
         next();
-        return;
     })
 }
 //Get History Point - Middle Ware

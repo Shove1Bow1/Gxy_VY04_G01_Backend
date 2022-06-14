@@ -94,28 +94,29 @@ router.get("/getBaremExchangePoint/:id",(req,res)=>{
 
 // Update Service
 router.post("/updateServiceManager",(req,res,next)=>{
+  console.log(req.body.MAX_PRICE)
   if(!req.body.APP_ID){
     res.end();
     return;
   }
-  con.query("select * from ADMIN where ADMIN_PASSWORD='"+req.body.TOKEN+"');",(err,resultAuth)=>{
-    if(err){
+  con.query("select * from ADMIN where ADMIN_PASSWORD='"+req.body.TOKEN+"';",(err,resultAuth)=>{
+    if(err){  
       res.end();
       return;
     }
-    if(!result[0]){
+    if(!resultAuth[0]){
       res.send({
         MESSAGE:"Cập nhật không thành công",
         STATUS:false,
       });
       return;
     }
-    con.query("Update SERVICE_PROVIDER set MIN_PRICE=" + parseInt(req.body.MIN_PRICE) +
-    ", MAX_PRICE=" + parseInt(req.body.MAX_PRICE) +
-    ", POINT_EXCHANGE_RANGE =" + parseInt(req.body.POINT_EXCHANGE_RANGE) +
-    " WHERE APP_ID='" + req.path.id + "';",
+    con.query("Update SERVICE_PROVIDER set MIN_PRICE=" + req.body.MIN_PRICE +", MAX_PRICE=" + req.body.MAX_PRICE +", POINT_EXCHANGE_RANGE =" + req.body.POINT_EXCHANGE_RANGE +" WHERE APP_ID='" + req.body.APP_ID + "';",
     function (err, result, filesd) {
-      if (err) throw err;
+      if (err){
+        res.send({MESSAGE:"Xảy ra lỗi khi đổi điểm"});
+        return;
+      }
       res.send({
         MESSAGE: "Cập nhật thành công",
         STATUS: true
@@ -127,19 +128,21 @@ router.post("/updateServiceManager",(req,res,next)=>{
 })
 
 router.post("/Login",(req,res,next)=>{
-  if(req.body.ADMIN_NAME||req.body.ADMIN_PASSWORD){
+  if(!req.body.ADMIN_NAME||!req.body.ADMIN_PASSWORD){
       res.send({
 
       });
+      console.log("run 1");
       return;
   }
-  const ADMIN_OTHER_INFO=crypto.createHash(algorithm).update(ADMIN_PASSWORD).digest("hex");
+  const ADMIN_OTHER_INFO=crypto.createHash(algorithm).update(req.body.ADMIN_PASSWORD).digest("hex");
   con.query("Select * from ADMIN where ADMIN_NAME='"+req.body.ADMIN_NAME+"' AND ADMIN_PASSWORD='"+ADMIN_OTHER_INFO+"';",function(err,result,filesd){
       if(err){
         res.end();
         return;
       }
       if(!result[0]){
+        console.log("run 2");
         res.send({
           MESSAGE:"Sai Mật Khẩu hoặc tên Admin",
           STATUS:false,
