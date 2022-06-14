@@ -168,13 +168,14 @@ router.post("/updatePassword",(req,res)=>{
     res.end();
     return;
   }
-  const ADMIN_OLD_PASSWORD=crypto.createHash(algorithm).update(ADMIN_OLD_PASSWORD).digest("hex");
+  const ADMIN_OLD_PASSWORD=crypto.createHash(algorithm).update(req.body.ADMIN_OLD_PASSWORD).digest("hex");
   con.query("select * from ADMIN where ADMIN_PASSWORD='"+ADMIN_OLD_PASSWORD+"';",(err,result)=>{
     if(err){
       console.log(err);
       res.end();
       return;
     }
+    console.log(result);
     if(!result[0]){
       res.send({
         MESSAGE:"Sai mật khẩu cũ"
@@ -182,7 +183,7 @@ router.post("/updatePassword",(req,res)=>{
       return;
     }
   })
-  const ADMIN_NEW_PASSWORD=crypto.createHash(algorithm).update(ADMIN_NEW_PASSWORD).digest("hex");
+  const ADMIN_NEW_PASSWORD=crypto.createHash(algorithm).update(req.body.ADMIN_NEW_PASSWORD).digest("hex");
   con.query("update ADMIN set ADMIN_PASSWORD='"+ADMIN_NEW_PASSWORD+"';",(err,result)=>{
     if(err){
       console.log(err);

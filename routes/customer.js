@@ -7,6 +7,7 @@ const crypto = require("crypto");
 const jwt = require('jsonwebtoken');
 const axios = require('axios');
 const conn = require('../mysql');
+const e = require('express');
 var ARRAY_APP_ID = ["PROFILE", "FLIGHT", "HOTEL", "AIRPORT", "APART", "XPERIENCE", "CARRENTAL", "EATS", "VOUCHER", "COMBO"];
 let algorithm = "sha256";
 let secretKey ="MIIBXjCCAQSgAwIBAgIGAXvykuMKMAoGCCqGSM49BAMCMDYxNDAyBgNVBAMMK3NpQXBNOXpBdk1VaXhXVWVGaGtjZXg1NjJRRzFyQUhXaV96UlFQTVpQaG8wHhcNMjEwOTE3MDcwNTE3WhcNMjIwNzE0MDcwNTE3WjA2MTQwMgYDVQQDDCtzaUFwTTl6QXZNVWl4V1VlRmhrY2V4NTYyUUcxckFIV2lfelJRUE1aUGhvMFkwEwYHKoZIzj0CAQYIKoZIzj0DAQcDQgAE8PbPvCv5D5xBFHEZlBp/q5OEUymq7RIgWIi7tkl9aGSpYE35UH+kBKDnphJO3odpPZ5gvgKs2nwRWcrDnUjYLDAKBggqhkjOPQQDAgNIADBFAiEA1yyMTRe66MhEXID9+uVub7woMkNYd0LhSHwKSPMUUTkCIFQGsfm1ecXOpeGOufAhv+A1QWZMuTWqYt+uh/YSRNDn"
@@ -220,32 +221,67 @@ router.post("/getCustomerName", (req, res) => {
 // check Session
 router.post("/getStatus", (req, res) => {
     if (!req.body.TOKEN) {
-        
         res.end();
     }
     try {
-        
-        if (jwt.verify(req.body.TOKEN, secretKey)) { 
-            const INFO=jwt.decode(req.body.TOKEN);
-            conn.query("select * from CUSTOMER_SECURITY where CUSTOMER_ID='" + INFO.CUSTOMER_PACKAGE.CUSTOMER_ID + "' and CUS_PASSWORD='" + INFO.CUSTOMER_PACKAGE.CUSTOMER_OTHER_INFO + "';", (err, result) => {
+        if (jwt.verify(req.body.TOKEN, secretKey)) {
+            const DATA=jwt.decode(req.body.TOKEN);
+            const INFO = DATA.CUSTOMER_PACKAGE;
+            console.log(INFO)
+            conn.query("select * from CUSTOMER_SECURITY,CUSTOMER_INFO where CUSTOMER_INFO.CUSTOMER_ID=CUSTOMER_SECURITY.CUSTOMER_ID and CUSTOMER_SECURITY.CUSTOMER_ID='" + INFO.CUSTOMER_ID + "' and CUS_PASSWORD='" + INFO.CUSTOMER_OTHER_INFO + "';", (err, result) => {
                 if (err) {
+                    console.log(err);
                     res.send({ STATUS: false, MESSAGE: "please delete this token" });
                     return;
                 }
-                if(!result[0]){
+                if (!result[0]) {
                     res.send({ STATUS: false, MESSAGE: "please delete this token" });
                     return;
                 }
+                const POINT = parseInt(result[0].POINT_AVAILABLE);
                
-                res.send({
-                    STATUS: true,
+                conn.query("select PP.* from HISTORY_TRANSACTION as HT,PROCESS_POINT as PP where HT.CUSTOMER_ID='" + INFO.CUSTOMER_ID + "' and PP.TRANSACTION_ID=HT.TRANSACTION_ID and PP.REFUND_STATE=0 and (DATE(PP.END_DATE)=CURDATE());", (err, result1) => {
+                    if(err) {
+                        console.log(err);
+                        res.end();
+                        return;
+                    }
+                    console.log(result1);
+                    if(result1[0]){
+                        const lengthResult = result1.length;
+                        for (var i = 0; i < lengthResult; i++) {
+                            POINT += parseInt(result1[i].POINT_VALUE);
+                            conn.query("update PROCESS_POINT set REFUND_STATE=1 where TRANSACTION_ID='" + result1[i].TRANSACTION_ID + "';", (err, result2) => {
+                                if (err) {
+                                    console.log(err);
+                                    res.send({ MESSAGE: "Không thể cập nhật điểm" });
+                                    return;
+                                }
+                            })
+                            console.log("run");
+                        }
+                        conn.query("update CUSTOMER_INFO set POINT_AVAILABLE=" + POINT + "where CUSTOMER_ID='" + INFO.CUSTOMER_ID + "';", (err, result) => {
+                            res.send({
+                                MESSAGE: "Update Success",
+                                POINT: POINT,
+                                STATUS: true,
+                            })
+                            return;
+                        })
+                    }
+                    else{
+                        res.send({
+                            STATUS: true,
+                        })
+                        return;
+                    }
                 })
             })
         }
     }
     catch (e) {
         res.send({
-            STATUS: true,
+            STATUS: false,
         });
     }
 })
