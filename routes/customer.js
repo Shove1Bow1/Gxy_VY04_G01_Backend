@@ -246,7 +246,6 @@ router.post("/getStatus", (req, res) => {
                         res.end();
                         return;
                     }
-                    console.log(result1);
                     if(result1[0]){
                         const lengthResult = result1.length;
                         for (var i = 0; i < lengthResult; i++) {
