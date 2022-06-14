@@ -205,7 +205,7 @@ router.post("/getCustomerName", (req, res) => {
                     res.send({ STATUS: false, MESSAGE: "please delete this token" });
                     return;
                 }
-               
+                res.send({CUSTOMER_NAME:result[0].CUSTOMER_NAME,STATUS:true})
             })
          
         }
