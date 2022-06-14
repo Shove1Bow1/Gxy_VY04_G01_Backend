@@ -537,7 +537,7 @@ router.post("/insertTransicationAndPP",insertTransicationAndPP,(req,res)=>{
                 }
                 console.log("uncheck");
             })
-            conn.query("insert into HISTORY_POINT (HISTORY_ID,CUSTOMER_ID,APP_ID,TYPE_HISTORY_POINT,POINT_VALUE,ACTIVATED_DATE) values ('" + req.ID + "','" + req.CUSTOMER_ID + "','" + req.body.APP_ID + "',false,'" + req.POINT_INSERT + "','" + req.body.END_DATE + "');", (err, result2) => {
+            conn.query("insert into HISTORY_POINT (HISTORY_ID,CUSTOMER_ID,APP_ID,TYPE_HISTORY_POINT,POINT_VALUE,ACTIVATED_DATE) values ('" + req.ID + "','" + req.CUSTOMER_ID + "','" + req.body.APP_ID + "',true,'" + req.POINT_INSERT + "','" + req.body.END_DATE + "');", (err, result2) => {
                 if (err) {
                     console.log(err);
                     res.send({ MESSAGE: "Không thể cộng điểm thưởng vào lịch sử" });

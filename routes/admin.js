@@ -171,19 +171,21 @@ router.post("/updatePassword",(req,res)=>{
   const ADMIN_OLD_PASSWORD=crypto.createHash(algorithm).update(ADMIN_OLD_PASSWORD).digest("hex");
   con.query("select * from ADMIN where ADMIN_PASSWORD='"+ADMIN_OLD_PASSWORD+"';",(err,result)=>{
     if(err){
+      console.log(err);
       res.end();
       return;
     }
     if(!result[0]){
       res.send({
-        MESSAGE:"Mật khẩu cũ sai"
+        MESSAGE:"Sai mật khẩu cũ"
       })
       return;
     }
   })
   const ADMIN_NEW_PASSWORD=crypto.createHash(algorithm).update(ADMIN_NEW_PASSWORD).digest("hex");
-  con.query("update ADMIN set ADMIN_NEW_PASSWORD='"+ADMIN_NEW_PASSWORD+"';",(err,result)=>{
+  con.query("update ADMIN set ADMIN_PASSWORD='"+ADMIN_NEW_PASSWORD+"';",(err,result)=>{
     if(err){
+      console.log(err);
       res.end();
       return;
     }
