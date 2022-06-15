@@ -237,42 +237,8 @@ router.post("/getStatus", (req, res) => {
                     res.send({ STATUS: false, MESSAGE: "please delete this token" });
                     return;
                 }
-                const POINT = parseInt(result[0].POINT_AVAILABLE);
-               
-                conn.query("select PP.* from HISTORY_TRANSACTION as HT,PROCESS_POINT as PP where HT.CUSTOMER_ID='" + INFO.CUSTOMER_ID + "' and PP.TRANSACTION_ID=HT.TRANSACTION_ID and PP.REFUND_STATE=0 and (DATE(PP.END_DATE)=CURDATE());", (err, result1) => {
-                    if(err) {
-                        console.log(err);
-                        res.end();
-                        return;
-                    }
-                    if(result1[0]){
-                        const lengthResult = result1.length;
-                        for (var i = 0; i < lengthResult; i++) {
-                            POINT += parseInt(result1[i].POINT_VALUE);
-                            conn.query("update PROCESS_POINT set REFUND_STATE=1 where TRANSACTION_ID='" + result1[i].TRANSACTION_ID + "';", (err, result2) => {
-                                if (err) {
-                                    console.log(err);
-                                    res.send({ MESSAGE: "Không thể cập nhật điểm" });
-                                    return;
-                                }
-                            })
-                            console.log("run");
-                        }
-                        conn.query("update CUSTOMER_INFO set POINT_AVAILABLE=" + POINT + "where CUSTOMER_ID='" + INFO.CUSTOMER_ID + "';", (err, result) => {
-                            res.send({
-                                MESSAGE: "Update Success",
-                                POINT: POINT,
-                                STATUS: true,
-                            })
-                            return;
-                        })
-                    }
-                    else{
-                        res.send({
-                            STATUS: true,
-                        })
-                        return;
-                    }
+                res.send({
+                    STATUS: true,
                 })
             })
         }
